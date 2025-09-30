@@ -33,7 +33,6 @@ public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
-
     public UserResponse create(UserCreationRequest request) {
         log.info("Create a user");
         User user = this.userMapper.toUser(request);
