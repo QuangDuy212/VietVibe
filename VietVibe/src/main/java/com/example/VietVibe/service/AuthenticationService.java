@@ -132,7 +132,7 @@ public class AuthenticationService {
             request.setRole(PredefinedRole.USER_ROLE);
             user.setRole(PredefinedRole.USER_ROLE);
         } else {
-            user.setRole(PredefinedRole.ADMIN_ROLE);
+            user.setRole(request.getRole());
         }
 
         try {
