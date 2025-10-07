@@ -1,6 +1,10 @@
 package com.example.VietVibe.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,11 +15,9 @@ import com.example.VietVibe.dto.request.GameCreationRequest;
 import com.example.VietVibe.dto.request.GameUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.GameResponse;
-import com.example.VietVibe.dto.response.UserResponse;
 import com.example.VietVibe.entity.Answer;
 import com.example.VietVibe.entity.Game;
 import com.example.VietVibe.entity.Question;
-import com.example.VietVibe.entity.User;
 import com.example.VietVibe.exception.AppException;
 import com.example.VietVibe.exception.ErrorCode;
 import com.example.VietVibe.mapper.GameMapper;
@@ -33,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GameService {
     GameRepository gameRepository;
+
     GameMapper gameMapper;
 
     public GameResponse getGameById(Long id) {
@@ -67,93 +70,68 @@ public class GameService {
         return gameMapper.toGameResponse(game);
     }
 
-    //Update thủ công
-    // @Transactional
-    // public Game updateGame(Long id, GameCreationRequest request) {
-    //     Game game = gameRepository.findById(id)
-    //             .orElseThrow(() -> new RuntimeException("Game not found"));
-
-    //     game.setName(request.getName());
-    //     game.setDescription(request.getDescription());
-    //     game.setType(request.getType());
-
-    //     // cập nhật question
-    //     for (QuestionCreationRequest qReq : request.getQuestions()) {
-    //         if (qReq.getId() != null) {
-    //             // Nếu có ID -> update
-    //             Question question = game.getQuestions().stream()
-    //                     .filter(q -> q.getId().equals(qReq.getId()))
-    //                     .findFirst()
-    //                     .orElseThrow(() -> new RuntimeException("Question not found"));
-
-    //             question.setContent(qReq.getContent());
-    //             question.setImageUrl(qReq.getImageUrl());
-    //             question.setAudioUrl(qReq.getAudioUrl());
-
-    //             // update answer
-    //             for (AnswerCreationRequest aReq : qReq.getAnswers()) {
-    //                 if (aReq.getId() != null) {
-    //                     Answer answer = question.getAnswers().stream()
-    //                             .filter(a -> a.getId().equals(aReq.getId()))
-    //                             .findFirst()
-    //                             .orElseThrow(() -> new RuntimeException("Answer not found"));
-    //                     answer.setContent(aReq.getContent());
-    //                     answer.setCorrect(aReq.isCorrect());
-    //                     answer.setOrderIndex(aReq.getOrderIndex());
-    //                 } else {
-    //                     // thêm mới answer
-    //                     Answer newAnswer = Answer.builder()
-    //                             .content(aReq.getContent())
-    //                             .isCorrect(aReq.isCorrect())
-    //                             .orderIndex(aReq.getOrderIndex())
-    //                             .question(question)
-    //                             .build();
-    //                     question.getAnswers().add(newAnswer);
-    //                 }
-    //             }
-
-    //         } else {
-    //             // Thêm mới question
-    //             Question newQ = Question.builder()
-    //                     .content(qReq.getContent())
-    //                     .imageUrl(qReq.getImageUrl())
-    //                     .audioUrl(qReq.getAudioUrl())
-    //                     .game(game)
-    //                     .build();
-
-    //             // thêm answer mới
-    //             for (AnswerCreationRequest aReq : qReq.getAnswers()) {
-    //                 Answer newAnswer = Answer.builder()
-    //                         .content(aReq.getContent())
-    //                         .isCorrect(aReq.isCorrect())
-    //                         .orderIndex(aReq.getOrderIndex())
-    //                         .question(newQ)
-    //                         .build();
-    //                 newQ.getAnswers().add(newAnswer);
-    //             }
-
-    //             game.getQuestions().add(newQ);
-    //         }
-    //     }
-
-    //     return gameRepository.save(game);
-    // }
-
-    //Update kiểu xóa đi câu hỏi cũ thêm lại bằng câu hỏi mới
+    @Transactional
     public GameResponse updateGame(Long id, GameUpdateRequest request) {
-        Game game = gameRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_EXISTED));
-        
+        Game game = gameRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_EXISTED));
+
+        // update basic fields
         game.setName(request.getName());
         game.setDescription(request.getDescription());
         game.setType(request.getType());
 
-        // update lại list câu hỏi (xóa cũ, thêm mới nếu có thay đổi)
+        // Map hiện có (question cũ)
+        Map<Long, Question> existingQuestions = game.getQuestions().stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
+        // Duyệt qua request
+        List<Question> updatedQuestions = new ArrayList<>();
+        for (Question newQ : request.getQuestions()) {
+            if (newQ.getId() != null && existingQuestions.containsKey(newQ.getId())) {
+                // update question cũ
+                Question oldQ = existingQuestions.get(newQ.getId());
+                oldQ.setContent(newQ.getContent());
+                oldQ.setImageUrl(newQ.getImageUrl());
+                oldQ.setAudioUrl(newQ.getAudioUrl());
+
+                // xử lý answers
+                Map<Long, Answer> existingAnswers = oldQ.getAnswers().stream()
+                        .collect(Collectors.toMap(Answer::getId, a -> a));
+
+                List<Answer> updatedAnswers = new ArrayList<>();
+                for (Answer newA : newQ.getAnswers()) {
+                    if (newA.getId() != null && existingAnswers.containsKey(newA.getId())) {
+                        // update answer cũ
+                        Answer oldA = existingAnswers.get(newA.getId());
+                        oldA.setContent(newA.getContent());
+                        oldA.setCorrect(newA.isCorrect());
+                        updatedAnswers.add(oldA);
+                    } else {
+                        // thêm answer mới
+                        newA.setQuestion(oldQ);
+                        updatedAnswers.add(newA);
+                    }
+                }
+
+                // xóa answer thừa
+                oldQ.getAnswers().clear();
+                oldQ.getAnswers().addAll(updatedAnswers);
+
+                updatedQuestions.add(oldQ);
+            } else {
+                // thêm question mới
+                newQ.setGame(game);
+                newQ.getAnswers().forEach(a -> a.setQuestion(newQ));
+                updatedQuestions.add(newQ);
+            }
+        }
+
+        // xóa question thừa
         game.getQuestions().clear();
-        game.getQuestions().addAll(request.getQuestions());
+        game.getQuestions().addAll(updatedQuestions);
 
-        gameRepository.save(game);
-
-        return gameMapper.toGameResponse(game);
+        Game saved = gameRepository.save(game);
+        return gameMapper.toGameResponse(saved);
     }
 
     public void delete(long id) {

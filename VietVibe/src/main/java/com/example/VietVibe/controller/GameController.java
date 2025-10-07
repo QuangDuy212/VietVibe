@@ -33,9 +33,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-
-
-
 @RestController
 @RequestMapping("/games")
 @RequiredArgsConstructor
@@ -56,18 +53,13 @@ public class GameController {
         return ResponseEntity.ok().body(this.gameService.getAllGames(spec, pageable));
     }
 
-    public String getMethodName(@RequestParam String param) {
-        return new String();
-    }
-    
-
     @PostMapping("/create")
     @ApiMessage("Create a new game success")
     ResponseEntity<GameResponse> createGame(@RequestBody GameCreationRequest request){
         return ResponseEntity.status(HttpStatus.CREATED).body(this.gameService.create(request));
     }
     
-    @DeleteMapping("/delete")
+    @DeleteMapping("/{id}")
     @ApiMessage("Delete a game success")
     ResponseEntity<ApiString> deleteGame(@PathVariable long id){
         gameService.delete(id);
@@ -76,7 +68,7 @@ public class GameController {
                 .build());
     }
 
-    @PutMapping("update/{id}")
+    @PutMapping("/{id}")
     @ApiMessage("Update a game success")
     ResponseEntity<GameResponse> updateGame(@PathVariable Long id, @RequestBody GameUpdateRequest request){
         return ResponseEntity.ok().body(this.gameService.updateGame(id, request));
