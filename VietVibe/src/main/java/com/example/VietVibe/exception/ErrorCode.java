@@ -20,6 +20,7 @@ public enum ErrorCode {
     // CHECK EXISTED
     USER_EXISTED(400, "User existed", HttpStatus.BAD_REQUEST),
     USER_NOT_EXISTED(404, "User not existed", HttpStatus.NOT_FOUND),
+    GAME_NOT_EXISTED(404, "Game not existed", HttpStatus.NOT_FOUND),
     CATEGORY_NOT_FOUND(400, "This category not found", HttpStatus.BAD_REQUEST),
     CATEGORY_EXISTED(400, "This category is existed", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_FOUND(400, "This product not found", HttpStatus.BAD_REQUEST),

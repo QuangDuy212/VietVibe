@@ -3,7 +3,7 @@ package com.example.VietVibe.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.VietVibe.enums.GameType;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -18,24 +18,24 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Entity(name = "games")
+@Entity(name = "questions")
 @JsonPropertyOrder(alphabetic = true)
-public class Game {
+public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty("_id")
-    long id;
+    private Long id;
 
-    String name;
+    private String content;
+    private String imageUrl;
+    private String audioUrl;
 
-    String description;
+    @ManyToOne
+    @JoinColumn(name = "game_id")
+    @JsonBackReference
+    private Game game;
 
-    int totalQuestion;
-
-    @Enumerated(EnumType.STRING)
-    GameType type; // 
-
-    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    List<Question> questions = new ArrayList<>();
+    List<Answer> answers = new ArrayList<>();
 }
