@@ -60,7 +60,7 @@ const GamesManagement = () => {
       setGames(data || []);
     } catch (error) {
       console.error("Error fetching games:", error);
-      toast.error("Không thể tải danh sách games");
+      toast.error("Failed to load games list");
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ const GamesManagement = () => {
   const handleSubmit = async () => {
     try {
       if (!formData.title) {
-        toast.error("Vui lòng nhập tiêu đề");
+        toast.error("Please enter a title");
         return;
       }
 
@@ -102,21 +102,21 @@ const GamesManagement = () => {
           .eq("id", editingGame.id);
 
         if (error) throw error;
-        toast.success("Đã cập nhật game");
+        toast.success("Game updated");
       } else {
         const { error } = await supabase
           .from("games")
           .insert([formData]);
 
         if (error) throw error;
-        toast.success("Đã tạo game mới");
+        toast.success("Game created");
       }
 
       setDialogOpen(false);
       fetchGames();
     } catch (error) {
       console.error("Error saving game:", error);
-      toast.error("Có lỗi xảy ra");
+      toast.error("An error occurred");
     }
   };
 
@@ -128,11 +128,11 @@ const GamesManagement = () => {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Đã xóa game");
+      toast.success("Game deleted");
       fetchGames();
     } catch (error) {
       console.error("Error deleting game:", error);
-      toast.error("Có lỗi xảy ra");
+      toast.error("An error occurred");
     } finally {
       setDeleteId(null);
     }
@@ -151,7 +151,7 @@ const GamesManagement = () => {
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Đang tải...</div>
+          <div className="text-center text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -165,15 +165,15 @@ const GamesManagement = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Gamepad2 className="h-5 w-5" />
-                Danh sách Games
+                Games List
               </CardTitle>
               <CardDescription>
-                Tổng số: {games.length} games
+                Total: {games.length} games
               </CardDescription>
             </div>
             <Button onClick={openCreateDialog} className="gap-2">
               <Plus className="h-4 w-4" />
-              Thêm Game
+              Add Game
             </Button>
           </div>
         </CardHeader>
@@ -182,11 +182,11 @@ const GamesManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Tiêu đề</TableHead>
-                  <TableHead>Mô tả</TableHead>
-                  <TableHead>Độ khó</TableHead>
-                  <TableHead>Điểm</TableHead>
-                  <TableHead className="text-right">Hành động</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Points</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -199,7 +199,7 @@ const GamesManagement = () => {
                         {game.difficulty}
                       </Badge>
                     </TableCell>
-                    <TableCell>{game.points} điểm</TableCell>
+                    <TableCell>{game.points} points</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -230,35 +230,35 @@ const GamesManagement = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingGame ? "Chỉnh sửa Game" : "Thêm Game mới"}
+              {editingGame ? "Edit Game" : "Add New Game"}
             </DialogTitle>
             <DialogDescription>
-              Điền thông tin game bên dưới
+              Fill in the game information below
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="title">Tiêu đề *</Label>
+              <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Nhập tiêu đề game"
+                placeholder="Enter game title"
               />
             </div>
             <div>
-              <Label htmlFor="description">Mô tả</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Nhập mô tả game"
+                placeholder="Enter game description"
                 rows={3}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="difficulty">Độ khó</Label>
+                <Label htmlFor="difficulty">Difficulty</Label>
                 <Select
                   value={formData.difficulty}
                   onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
@@ -274,7 +274,7 @@ const GamesManagement = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="points">Điểm</Label>
+                <Label htmlFor="points">Points</Label>
                 <Input
                   id="points"
                   type="number"
@@ -286,10 +286,10 @@ const GamesManagement = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Hủy
+              Cancel
             </Button>
             <Button onClick={handleSubmit}>
-              {editingGame ? "Cập nhật" : "Tạo mới"}
+              {editingGame ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -298,15 +298,15 @@ const GamesManagement = () => {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogTitle>Confirm delete</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa game này? Hành động này không thể hoàn tác.
+              Are you sure you want to delete this game? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteId && deleteGame(deleteId)}>
-              Xóa
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

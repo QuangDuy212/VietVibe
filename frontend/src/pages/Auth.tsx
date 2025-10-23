@@ -32,14 +32,14 @@ const Auth = () => {
 
     if (error) {
       toast({
-        title: "Lỗi đăng ký",
+        title: "Registration Error",
         description: error.message,
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Đăng ký thành công!",
-        description: "Vui lòng kiểm tra email để xác nhận tài khoản.",
+        title: "Registration Successful!",
+        description: "Please check your email to confirm your account.",
       });
     }
   };
@@ -57,13 +57,13 @@ const Auth = () => {
 
     if (error) {
       toast({
-        title: "Lỗi đăng nhập",
+        title: "Login Error",
         description: error.message,
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Đăng nhập thành công!",
+        title: "Login Successful!",
       });
       navigate("/");
     }
@@ -78,14 +78,14 @@ const Auth = () => {
               <BookOpen className="h-12 w-12 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-3xl">Học Tiếng Việt</CardTitle>
-          <CardDescription>Bắt đầu hành trình học tiếng Việt của bạn</CardDescription>
+          <CardTitle className="text-3xl">VietVibe</CardTitle>
+          <CardDescription>Start your Vietnamese learning journey</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Đăng nhập</TabsTrigger>
-              <TabsTrigger value="signup">Đăng ký</TabsTrigger>
+              <TabsTrigger value="signin">Login</TabsTrigger>
+              <TabsTrigger value="signup">Register</TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
@@ -102,7 +102,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Mật khẩu</Label>
+                  <Label htmlFor="signin-password">Password</Label>
                   <Input
                     id="signin-password"
                     type="password"
@@ -113,7 +113,7 @@ const Auth = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                  {loading ? "Loading..." : "Login"}
                 </Button>
               </form>
             </TabsContent>
@@ -132,7 +132,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Mật khẩu</Label>
+                  <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
                     type="password"
@@ -144,7 +144,7 @@ const Auth = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Đang đăng ký..." : "Đăng ký"}
+                  {loading ? "Loading..." : "Register"}
                 </Button>
               </form>
             </TabsContent>

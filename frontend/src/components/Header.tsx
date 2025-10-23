@@ -70,7 +70,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <BookOpen className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            LearnVietnamese
+            VietVibe
           </span>
         </div>
 
