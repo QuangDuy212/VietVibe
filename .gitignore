@@ -57,3 +57,4 @@ VietVibe_Frontend/*.local
 *.sln
 *.sw?
 
+node_modules/
