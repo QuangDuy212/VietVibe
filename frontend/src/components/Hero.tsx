@@ -14,7 +14,7 @@ const Hero = () => {
             </div>
             
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-              Learn Vietnamese
+              VietVibe
               <span className="block bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                 the Fun Way
               </span>

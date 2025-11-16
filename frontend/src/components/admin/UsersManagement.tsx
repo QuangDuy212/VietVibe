@@ -62,7 +62,7 @@ const UsersManagement = () => {
       setUsers(usersWithRoles);
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Không thể tải danh sách users");
+      toast.error("Failed to load users list");
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ const UsersManagement = () => {
           .eq("role", "admin");
 
         if (error) throw error;
-        toast.success("Đã xóa quyền admin");
+        toast.success("Admin role removed");
       } else {
         // Add admin role
         const { error } = await supabase
@@ -89,13 +89,13 @@ const UsersManagement = () => {
           .insert({ user_id: userId, role: "admin" });
 
         if (error) throw error;
-        toast.success("Đã thêm quyền admin");
+        toast.success("Admin role added");
       }
 
       fetchUsers();
     } catch (error) {
       console.error("Error toggling admin role:", error);
-      toast.error("Có lỗi xảy ra khi cập nhật quyền");
+      toast.error("Error updating role");
     }
   };
 
@@ -118,11 +118,11 @@ const UsersManagement = () => {
 
       if (profileError) throw profileError;
 
-      toast.success("Đã xóa user");
+      toast.success("User deleted");
       fetchUsers();
     } catch (error) {
       console.error("Error deleting user:", error);
-      toast.error("Có lỗi xảy ra khi xóa user");
+      toast.error("Error deleting user");
     } finally {
       setDeleteUserId(null);
     }
@@ -132,7 +132,7 @@ const UsersManagement = () => {
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Đang tải...</div>
+          <div className="text-center text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -144,10 +144,10 @@ const UsersManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Danh sách Users
+            Users List
           </CardTitle>
           <CardDescription>
-            Tổng số: {users.length} users
+            Total: {users.length} users
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -156,10 +156,10 @@ const UsersManagement = () => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>Email</TableHead>
-                  <TableHead>Tên</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Roles</TableHead>
-                  <TableHead>Ngày tạo</TableHead>
-                  <TableHead className="text-right">Hành động</TableHead>
+                  <TableHead>Created Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,7 +187,7 @@ const UsersManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString("vi-VN")}
+                      {new Date(user.created_at).toLocaleDateString("en-US")}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
@@ -197,7 +197,7 @@ const UsersManagement = () => {
                           onClick={() => toggleAdminRole(user.id, user.roles || [])}
                         >
                           <Shield className="h-4 w-4 mr-1" />
-                          {user.roles?.includes("admin") ? "Xóa Admin" : "Thêm Admin"}
+                          {user.roles?.includes("admin") ? "Remove Admin" : "Add Admin"}
                         </Button>
                         <Button
                           size="sm"
@@ -219,15 +219,15 @@ const UsersManagement = () => {
       <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa user</AlertDialogTitle>
+            <AlertDialogTitle>Confirm delete user</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa user này? Hành động này không thể hoàn tác.
+              Are you sure you want to delete this user? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteUserId && deleteUser(deleteUserId)}>
-              Xóa
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

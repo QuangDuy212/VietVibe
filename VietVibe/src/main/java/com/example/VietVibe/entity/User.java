@@ -1,7 +1,10 @@
 package com.example.VietVibe.entity;
 
 import java.time.Instant;
+import java.util.List;
+
 import com.example.VietVibe.util.SecurityUtil;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
@@ -37,6 +40,13 @@ public class User {
     Instant updatedAt;
     String createdBy;
     String updatedBy;
+
+    @OneToMany(mappedBy = "user")
+    List<Point> points;
+
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "users")
+    @JsonIgnore
+    List<Lesson> lessons;
 
     @PrePersist
     public void handleBeforeCreate() {

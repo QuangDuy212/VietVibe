@@ -62,7 +62,7 @@ const LessonsManagement = () => {
       setLessons(data || []);
     } catch (error) {
       console.error("Error fetching lessons:", error);
-      toast.error("Không thể tải danh sách lessons");
+      toast.error("Failed to load lessons list");
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ const LessonsManagement = () => {
   const handleSubmit = async () => {
     try {
       if (!formData.title) {
-        toast.error("Vui lòng nhập tiêu đề");
+        toast.error("Please enter a title");
         return;
       }
 
@@ -106,21 +106,21 @@ const LessonsManagement = () => {
           .eq("id", editingLesson.id);
 
         if (error) throw error;
-        toast.success("Đã cập nhật lesson");
+        toast.success("Lesson updated");
       } else {
         const { error } = await supabase
           .from("lessons")
           .insert([formData]);
 
         if (error) throw error;
-        toast.success("Đã tạo lesson mới");
+        toast.success("Lesson created");
       }
 
       setDialogOpen(false);
       fetchLessons();
     } catch (error) {
       console.error("Error saving lesson:", error);
-      toast.error("Có lỗi xảy ra");
+      toast.error("An error occurred");
     }
   };
 
@@ -132,11 +132,11 @@ const LessonsManagement = () => {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Đã xóa lesson");
+      toast.success("Lesson deleted");
       fetchLessons();
     } catch (error) {
       console.error("Error deleting lesson:", error);
-      toast.error("Có lỗi xảy ra");
+      toast.error("An error occurred");
     } finally {
       setDeleteId(null);
     }
@@ -155,7 +155,7 @@ const LessonsManagement = () => {
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Đang tải...</div>
+          <div className="text-center text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -169,15 +169,15 @@ const LessonsManagement = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5" />
-                Danh sách Lessons
+                Lessons List
               </CardTitle>
               <CardDescription>
-                Tổng số: {lessons.length} lessons
+                Total: {lessons.length} lessons
               </CardDescription>
             </div>
             <Button onClick={openCreateDialog} className="gap-2">
               <Plus className="h-4 w-4" />
-              Thêm Lesson
+              Add Lesson
             </Button>
           </div>
         </CardHeader>
@@ -186,11 +186,11 @@ const LessonsManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Tiêu đề</TableHead>
-                  <TableHead>Mô tả</TableHead>
-                  <TableHead>Độ khó</TableHead>
-                  <TableHead>Thời lượng</TableHead>
-                  <TableHead className="text-right">Hành động</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -203,7 +203,7 @@ const LessonsManagement = () => {
                         {lesson.difficulty}
                       </Badge>
                     </TableCell>
-                    <TableCell>{lesson.duration} phút</TableCell>
+                    <TableCell>{lesson.duration} mins</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -234,29 +234,29 @@ const LessonsManagement = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingLesson ? "Chỉnh sửa Lesson" : "Thêm Lesson mới"}
+              {editingLesson ? "Edit Lesson" : "Add New Lesson"}
             </DialogTitle>
             <DialogDescription>
-              Điền thông tin lesson bên dưới
+              Fill in the lesson information below
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="title">Tiêu đề *</Label>
+              <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Nhập tiêu đề lesson"
+                placeholder="Enter lesson title"
               />
             </div>
             <div>
-              <Label htmlFor="description">Mô tả</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Nhập mô tả lesson"
+                placeholder="Enter lesson description"
                 rows={3}
               />
             </div>
@@ -271,7 +271,7 @@ const LessonsManagement = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="difficulty">Độ khó</Label>
+                <Label htmlFor="difficulty">Difficulty</Label>
                 <Select
                   value={formData.difficulty}
                   onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
@@ -287,7 +287,7 @@ const LessonsManagement = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="duration">Thời lượng (phút)</Label>
+                <Label htmlFor="duration">Duration (minutes)</Label>
                 <Input
                   id="duration"
                   type="number"
@@ -299,10 +299,10 @@ const LessonsManagement = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Hủy
+              Cancel
             </Button>
             <Button onClick={handleSubmit}>
-              {editingLesson ? "Cập nhật" : "Tạo mới"}
+              {editingLesson ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -311,15 +311,15 @@ const LessonsManagement = () => {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogTitle>Confirm delete</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa lesson này? Hành động này không thể hoàn tác.
+              Are you sure you want to delete this lesson? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteId && deleteLesson(deleteId)}>
-              Xóa
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

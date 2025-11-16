@@ -1,6 +1,7 @@
 package com.example.VietVibe.dto.response;
 
 import java.time.Instant;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -25,4 +26,7 @@ public class UserResponse {
     Instant updatedAt;
     String createdBy;
     String updatedBy;
+    List<PointResponse> points;
 }
+
+

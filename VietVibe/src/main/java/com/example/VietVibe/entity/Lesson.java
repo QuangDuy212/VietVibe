@@ -1,7 +1,11 @@
 package com.example.VietVibe.entity;
 
+import java.security.Permission;
 import java.time.Instant;
+import java.util.List;
+
 import com.example.VietVibe.util.SecurityUtil;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
@@ -35,6 +39,11 @@ public class Lesson {
     Instant updatedAt;
     String createdBy;
     String updatedBy;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties(value = { "lessons" })
+    @JoinTable(name = "user_lesson", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "lesson_id"))
+    List<User> users;
 
     @PrePersist
     public void handleBeforeCreate() {
