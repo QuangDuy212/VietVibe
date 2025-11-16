@@ -2,6 +2,8 @@ import { IAccount, IBackendRes, IGetAccount, IUser } from '@/types/common.type';
 import axios from './axios-customize';
 
 
+//MODULE AUTH
+
 export const callFetchAccount = () => {
     return axios.get<IBackendRes<IGetAccount>>('/api/v1/auth/account')
 }
@@ -21,3 +23,4 @@ export const callRefreshToken = () => {
 export const callLogout = () => {
     return axios.post<IBackendRes<string>>('/api/v1/auth/logout')
 }
+

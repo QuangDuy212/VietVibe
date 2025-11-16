@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import PointsManagement from "@/components/admin/PointsManagement";
+import { useAppSelector } from "@/redux/hook";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Admin = () => {
     lessons: 0,
     games: 0,
   });
+  const user = useAppSelector(state => state.account.user);
 
   useEffect(() => {
     checkAdminStatus();
@@ -31,29 +33,12 @@ const Admin = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error("Please login");
-        navigate("/auth");
-        return;
-      }
-
-      const { data: roles, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .eq("role", "admin");
-
-      if (error) throw error;
-
-      if (!roles || roles.length === 0) {
-        toast.error("You don't have permission to access this page");
+      if(user.role === "ADMIN"){
+        setIsAdmin(true);
+      }else{
+        toast.error("Access denied. Admins only.");
         navigate("/");
-        return;
       }
-
-      setIsAdmin(true);
     } catch (error) {
       console.error("Error checking admin status:", error);
       toast.error("An error occurred");
