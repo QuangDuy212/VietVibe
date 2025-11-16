@@ -58,6 +58,7 @@ const Auth = () => {
     setLoading(true);
 
     const res = await callLogin( username, password );
+    console.log(">>>>> check res: ", res);
     setLoading(false);
     if (res)
       if (res.statusCode === 200) {

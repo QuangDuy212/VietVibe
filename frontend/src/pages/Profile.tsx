@@ -5,8 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import StatsCard from "@/components/StatsCard";
 import { Trophy, BookOpen, Gamepad2, Flame, Edit, Mail, MapPin, Calendar } from "lucide-react";
 import Header from "@/components/Header";
+import { useAppSelector } from "@/redux/hook";
+import { useEffect, useState } from "react";
 
 const Profile = () => {
+  const user = useAppSelector(state => state.account.user);
+  const [totalPoints, setTotalPoints] = useState(0);
+
+  useEffect(() =>{
+    const tottalPoint = () =>{
+      let total = 0;
+      user.points.forEach((point: any) => {
+        total += point.score;
+      });
+      setTotalPoints(total);
+      console.log("Total Points:", total);
+    }
+    tottalPoint();
+  },[])
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -24,7 +40,7 @@ const Profile = () => {
               <div className="flex-1 space-y-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-bold">Alex Johnson</h1>
+                    <h1 className="text-3xl font-bold">{user.name}</h1>
                     <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
                       Premium
                     </Badge>
@@ -61,7 +77,7 @@ const Profile = () => {
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatsCard icon={Trophy} label="Total Points" value="1,250" color="primary" />
+          <StatsCard icon={Trophy} label="Total Points" value={totalPoints} color="primary" />
           <StatsCard icon={BookOpen} label="Lessons Completed" value="8" color="secondary" />
           <StatsCard icon={Gamepad2} label="Games Played" value="15" color="accent" />
           <StatsCard icon={Flame} label="Day Streak" value="7 days" color="primary" />
@@ -78,7 +94,7 @@ const Profile = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Full Name</p>
-                  <p className="font-medium">Alex Johnson</p>
+                  <p className="font-medium">{user.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Gender</p>

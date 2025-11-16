@@ -16,20 +16,27 @@ interface IState {
     isRefreshToken: boolean;
     errorRefreshToken: string;
     user: {
-        id: string;
-        email: string;
+        _id: string;
+        address: string;
+        createdAt: string;
+        createdBy: string;
         name: string;
-        role: {
-            id?: string;
-            name?: string;
-            permissions?: {
-                id: string;
-                name: string;
-                apiPath: string;
-                method: string;
-                module: string;
-            }[]
-        }
+        role: string;
+        updatedAt: string;
+        updatedBy: string;
+        username: string;
+        points: {
+            id: number;
+            bonus: number;
+            correctAnswers: number;
+            createdAt: string; 
+            gameId: number | null; 
+            gameType: string | null; 
+            score: number;
+            totalQuestions: number;
+            userId: string | null; 
+            userName: string | null; 
+        }[]
     };
     activeMenu: string;
 }
@@ -40,16 +47,17 @@ const initialState: IState = {
     isRefreshToken: false,
     errorRefreshToken: "",
     user: {
-        id: "",
-        email: "",
+        _id: "",
+        address: "",
+        createdAt: "",
+        createdBy: "",
         name: "",
-        role: {
-            id: "",
-            name: "",
-            permissions: [],
-        },
+        role: "",
+        updatedAt: "",
+        updatedBy: "",
+        username: "",
+        points: []
     },
-
     activeMenu: 'home'
 };
 
@@ -66,26 +74,31 @@ export const accountSlide = createSlice({
         setUserLoginInfo: (state, action) => {
             state.isAuthenticated = true;
             state.isLoading = false;
-            state.user.id = action?.payload?.id;
-            state.user.email = action.payload.email;
+            state.user._id = action?.payload?._id;
+            state.user.username = action.payload.username;
             state.user.name = action.payload.name;
             state.user.role = action?.payload?.role;
-
-            if (!action?.payload?.user?.role) state.user.role = {};
-            state.user.role.permissions = action?.payload?.role?.permissions ?? [];
+            state.user.address = action.payload.address;
+            state.user.createdAt = action.payload.createdAt;
+            state.user.createdBy = action.payload.createdBy;
+            state.user.updatedAt = action.payload.updatedAt;
+            state.user.updatedBy = action.payload.updatedBy;
+            state.user.points = action.payload.points ?? [];
         },
         setLogoutAction: (state, action) => {
             localStorage.removeItem('access_token');
             state.isAuthenticated = false;
             state.user = {
-                id: "",
-                email: "",
+                _id: "",
+                address: "",
+                username: "",
+                points: [],
                 name: "",
-                role: {
-                    id: "",
-                    name: "",
-                    permissions: [],
-                },
+                role: "",
+                createdAt: "",
+                createdBy: "",
+                updatedAt: "",
+                updatedBy: "",
             }
         },
         setRefreshTokenAction: (state, action) => {
@@ -107,12 +120,16 @@ export const accountSlide = createSlice({
             if (action.payload) {
                 state.isAuthenticated = true;
                 state.isLoading = false;
-                state.user.id = action?.payload?.user?.id;
-                state.user.email = action.payload.user?.email;
-                state.user.name = action.payload.user?.name;
-                state.user.role = action?.payload?.user?.role;
-                if (!action?.payload?.user?.role) state.user.role = {};
-                state.user.role.permissions = action?.payload?.user?.role?.permissions ?? [];
+                state.user._id = action?.payload?._id;
+                state.user.username = action.payload.username;
+                state.user.name = action.payload.name;
+                state.user.role = action?.payload?.role;
+                state.user.address = action.payload.address;
+                state.user.createdAt = action.payload.createdAt;
+                state.user.createdBy = action.payload.createdBy;
+                state.user.updatedAt = action.payload.updatedAt;
+                state.user.updatedBy = action.payload.updatedBy;
+                state.user.points = action.payload.points ?? [];
             }
         })
 
