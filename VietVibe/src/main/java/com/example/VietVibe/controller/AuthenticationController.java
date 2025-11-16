@@ -62,7 +62,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh")
-    @ApiMessage("Logout success")
+    @ApiMessage("Refresh Token success")
     ResponseEntity<AuthenticationResponse> refreshToken(
             @CookieValue(name = "refresh_token", defaultValue = "duy") String refresh_token)
             throws AppException, JOSEException, ParseException {

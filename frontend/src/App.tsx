@@ -53,8 +53,6 @@ const App = () => {
       if (refreshToken && window.location.pathname === "/auth") {
         document.location.href = "/";
       }
-      if(!refreshToken && window.location.pathname !== "/auth")
-        document.location.href = "/auth";
     }, 500);
     return () => clearInterval(interval);
   }, [])

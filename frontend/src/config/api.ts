@@ -15,7 +15,7 @@ export const callLogin = (username: string, password: string) => {
 }
 
 export const callRefreshToken = () => {
-    return axios.get<IBackendRes<IAccount>>('/api/v1/auth/refresh')
+    return axios.post<IBackendRes<IAccount>>('/api/v1/auth/refresh')
 }
 
 export const callLogout = () => {
