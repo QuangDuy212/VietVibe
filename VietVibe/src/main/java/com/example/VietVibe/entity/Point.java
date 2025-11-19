@@ -2,6 +2,8 @@ package com.example.VietVibe.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -10,24 +12,25 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Point {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
-    private int score;
-    private int bonus;
+    int score;
+    int bonus;
 
-    private int correctAnswers;
-    private int totalQuestions;
+    int correctAnswers;
+    int totalQuestions;
 
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    User user;
 
     @ManyToOne
     @JoinColumn(name = "game_id")
-    private Game game;
+    Game game;
 }

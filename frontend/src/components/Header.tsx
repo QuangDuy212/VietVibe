@@ -4,63 +4,40 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { callFetchAccount, callLogout } from "@/config/api";
+import { setLogoutAction } from "@/redux/slice/accountSlide";
+import { useAppSelector } from "@/redux/hook";
 
 const Header = () => {
   const [language, setLanguage] = useState("en");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const user = useAppSelector(state => state.account.user);
+  const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     checkAuthStatus();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setIsLoggedIn(!!session);
-        if (session) {
-          checkAdminStatus(session.user.id);
-        } else {
-          setIsAdmin(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const checkAuthStatus = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsLoggedIn(!!session);
-    if (session) {
-      await checkAdminStatus(session.user.id);
-    }
-  };
-
-  const checkAdminStatus = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin");
-
-      if (!error && data && data.length > 0) {
+    if (user && user._id) {
+      if (user.role === "ADMIN") {
         setIsAdmin(true);
       }
-    } catch (error) {
-      console.error("Error checking admin status:", error);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      toast.success("Đăng xuất thành công");
-      navigate("/");
-    } catch (error) {
-      console.error("Error logging out:", error);
-      toast.error("Có lỗi xảy ra khi đăng xuất");
+    const res = await callLogout();
+    if (res.statusCode === 200) {
+      toast.success( "Đăng xuất thành công ");
+      navigate("/auth");
+      dispatch(setLogoutAction({}));
+    } else {
+      toast.error( "Đăng xuất thất bại ");
     }
   };
 
@@ -107,7 +84,7 @@ const Header = () => {
               <User className="h-5 w-5" />
             </Link>
           </Button>
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
               <LogOut className="h-4 w-4" />
               Đăng xuất
