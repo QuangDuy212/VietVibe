@@ -34,3 +34,40 @@ export interface IUser {
     createdBy: string;
     updatedBy: string;
 }
+
+export interface IAnswer {
+  _id?: string;
+  content: string;
+  isCorrect?: boolean;   
+  correct?: boolean; 
+  orderIndex?: number;
+}
+
+
+export interface IQuestion {
+  _id?: string;
+  content: string;
+  imageUrl?: string;
+  audioUrl?: string;
+  answers: IAnswer[];
+}
+
+export interface IGame {
+    _id: string;          
+    name: string;
+    description: string;
+    type: "MULTIPLE_CHOICE" | "SENTENCE_ORDER" | "LISTENING_CHOICE";
+    questions: IQuestion[];
+}
+
+export interface IPaginationMeta {
+    current: number;
+    pageSize: number;
+    pages: number;
+    total: number;
+}
+
+export interface IPaginationRes<T> {
+    meta: IPaginationMeta;
+    result: T[];
+}
