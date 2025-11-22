@@ -29,6 +29,8 @@ public enum ErrorCode {
     ROLE_NOT_EXISTED(400, "Role not existed", HttpStatus.BAD_REQUEST),
     PERMISSION_NOT_EXISTED(400, "Permission not existed", HttpStatus.BAD_REQUEST),
     CARTDETAIL_NOT_EXISTED(400, "Cart detail not existed", HttpStatus.BAD_REQUEST),
+    GAME_NOT_FOUND(404, "Game not found", HttpStatus.NOT_FOUND),
+    QUESTION_NOT_EXISTED(404, "Question not existed", HttpStatus.NOT_FOUND),
 
     // VALIDATE:
     USERNAME_INVALID(400, "Username must be at least {min} characters", HttpStatus.BAD_REQUEST),

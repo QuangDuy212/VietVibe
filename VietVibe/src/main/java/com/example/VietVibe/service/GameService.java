@@ -15,6 +15,7 @@ import com.example.VietVibe.dto.request.GameCreationRequest;
 import com.example.VietVibe.dto.request.GameUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.GameResponse;
+import com.example.VietVibe.dto.response.PlayGameResponse;
 import com.example.VietVibe.entity.Answer;
 import com.example.VietVibe.entity.Game;
 import com.example.VietVibe.entity.Question;
@@ -152,4 +153,5 @@ public class GameService {
     public void delete(long id) {
         gameRepository.deleteById(id);
     }
+
 }

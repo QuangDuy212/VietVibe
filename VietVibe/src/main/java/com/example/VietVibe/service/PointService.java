@@ -3,9 +3,12 @@ package com.example.VietVibe.service;
 import com.example.VietVibe.dto.request.PointRequest;
 import com.example.VietVibe.dto.request.PointSearchRequest;
 import com.example.VietVibe.dto.request.PointUpdateRequest;
+import com.example.VietVibe.dto.response.GameStatsResponse;
 import com.example.VietVibe.dto.response.PointResponse;
 import com.example.VietVibe.entity.Point;
 import com.example.VietVibe.entity.User;
+import com.example.VietVibe.exception.AppException;
+import com.example.VietVibe.exception.ErrorCode;
 import com.example.VietVibe.mapper.PointMapper;
 import com.example.VietVibe.entity.Game;
 import com.example.VietVibe.repository.PointRepository;
@@ -234,5 +237,39 @@ public class PointService {
                 .map(pointMapper::toResponse)
                 .collect(Collectors.toList());
     }
+    public Point createGamePoint(Long gameId, String username, PointRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_FOUND));
+
+        Point point = Point.builder()              // "GAME_PLAY"
+                .score(request.getScore())
+                .bonus(10)
+                .correctAnswers(request.getCorrectAnswers())
+                .totalQuestions(request.getTotalQuestions())
+                .createdAt(LocalDateTime.now())
+                .user(user)
+                .game(game)
+                .build();
+
+        return pointRepository.save(point);
+    }
+
+    public GameStatsResponse getGameStats(Long gameId) {
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_FOUND));
+
+        long timesPlayed = pointRepository.countByGame(game);
+        int bestScore = pointRepository.findTopByGameOrderByScoreDesc(game)
+                .map(Point::getScore)
+                .orElse(0);
+
+        return GameStatsResponse.builder()
+                .gameId(game.getId())
+                .timesPlayed(timesPlayed)
+                .bestScore(bestScore)
+                .build();
+    }
 }
