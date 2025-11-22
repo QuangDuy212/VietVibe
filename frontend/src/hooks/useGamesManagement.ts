@@ -30,28 +30,68 @@ export const useGamesManagement = () => {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // pagination
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+
   useEffect(() => {
-    fetchGames();
+    fetchGames(1, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ====== FETCH LIST ======
-  const fetchGames = async () => {
+  const fetchGames = async (
+    pageParam: number = page,
+    pageSizeParam: number = pageSize
+  ) => {
     try {
       setLoading(true);
-      const res = (await callGetGames(1, 50)) as unknown as IBackendRes<
-        IPaginationRes<IGame>
-      >;
+
+      // Ép kiểu qua unknown để tránh lỗi AxiosResponse vs IBackendRes
+      const res = (await callGetGames(
+        pageParam,
+        pageSizeParam
+      )) as unknown as IBackendRes<IPaginationRes<IGame>>;
+
+      // console.log("getGames response FE:", res);
 
       const pagination = res.data;
       const result = pagination?.result ?? [];
       setGames(result);
+
+      const meta = pagination?.meta;
+      if (meta) {
+        setPage(typeof meta.current === "number" ? meta.current : pageParam);
+        setPageSize(
+          typeof meta.pageSize === "number" ? meta.pageSize : pageSizeParam
+        );
+        setTotalPages(meta.pages ?? 1);
+        setTotalItems(meta.total ?? result.length);
+      } else {
+        setPage(pageParam);
+        setPageSize(pageSizeParam);
+        setTotalPages(1);
+        setTotalItems(result.length);
+      }
     } catch (error) {
       console.error("Error fetching games:", error);
       toast.error("Failed to load games list");
     } finally {
       setLoading(false);
     }
+  };
+
+  const changePage = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    fetchGames(newPage, pageSize);
+  };
+
+  const changePageSize = (newSize: number) => {
+    if (!newSize || newSize <= 0) return;
+    setPageSize(newSize);
+    fetchGames(1, newSize);
   };
 
   // ====== OPEN DIALOG: CREATE / VIEW / EDIT ======
@@ -96,7 +136,6 @@ export const useGamesManagement = () => {
                       a.content ?? a.text ?? a.answerContent ?? "";
 
                     const boolIsCorrect = !!a.isCorrect;
-
 
                     let orderIndex: number | undefined = undefined;
                     if (typeof a.orderIndex === "number")
@@ -179,7 +218,6 @@ export const useGamesManagement = () => {
       let defaultAnswers: IAnswer[] = [];
 
       if (prev.type === "MULTIPLE_CHOICE" || prev.type === "LISTENING_CHOICE") {
-        // mặc định 4 đáp án, đáp án đầu là đúng
         defaultAnswers = [0, 1, 2, 3].map((index) => ({
           content: "",
           isCorrect: index === 0,
@@ -188,7 +226,7 @@ export const useGamesManagement = () => {
         defaultAnswers = [
           {
             content: "",
-            orderIndex: 1,
+            orderIndex: 0,
           },
         ];
       }
@@ -240,7 +278,7 @@ export const useGamesManagement = () => {
       const base: IAnswer = { content: "" };
 
       if (prev.type === "SENTENCE_ORDER") {
-        base.orderIndex = answers.length + 1;
+        base.orderIndex = 0;
       } else {
         base.isCorrect = false;
       }
@@ -354,7 +392,7 @@ export const useGamesManagement = () => {
         isCreateMode ? "Game created successfully" : "Game updated successfully"
       );
       closeGameDialog();
-      fetchGames();
+      fetchGames(1, pageSize);
     } catch (error) {
       console.error("Error saving game:", error);
       toast.error("Failed to save game");
@@ -367,13 +405,15 @@ export const useGamesManagement = () => {
 
   const deleteGame = async (id: string) => {
     try {
-      const res = (await callDeleteGame(id)) as unknown as IBackendRes<string>;
+      const res = (await callDeleteGame(
+        id
+      )) as unknown as IBackendRes<string>;
       if (res.error) {
         toast.error(String(res.error));
         return;
       }
       toast.success("Game deleted");
-      fetchGames();
+      fetchGames(1, pageSize);
     } catch (error) {
       console.error("Error deleting game:", error);
       toast.error("An error occurred");
@@ -392,6 +432,12 @@ export const useGamesManagement = () => {
     dialogLoading,
     saving,
     deleteId,
+
+    // pagination
+    page,
+    pageSize,
+    totalPages,
+    totalItems,
 
     // flags
     isViewMode,
@@ -415,5 +461,7 @@ export const useGamesManagement = () => {
     setCorrectAnswer,
     handleSaveGame,
     deleteGame,
+    changePage,
+    changePageSize,
   };
 };

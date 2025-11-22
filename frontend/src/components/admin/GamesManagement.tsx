@@ -60,9 +60,16 @@ const GamesManagement = () => {
     dialogLoading,
     saving,
     deleteId,
+
+    page,
+    pageSize,
+    totalPages,
+    totalItems,
+
     isCreateMode,
     isEditMode,
     canEdit,
+
     setGameDialogOpen,
     setDeleteId,
     openCreateGameDialog,
@@ -78,6 +85,8 @@ const GamesManagement = () => {
     setCorrectAnswer,
     handleSaveGame,
     deleteGame,
+    changePage,
+    changePageSize,
   } = useGamesManagement();
 
   const getTypeColor = (type: string) => {
@@ -129,6 +138,9 @@ const GamesManagement = () => {
     );
   }
 
+  const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalItems);
+
   return (
     <>
       <Card className="border-0 shadow-xl">
@@ -139,7 +151,7 @@ const GamesManagement = () => {
                 <Gamepad2 className="h-5 w-5" />
                 Games List
               </CardTitle>
-              <CardDescription>Total: {games.length} games</CardDescription>
+              <CardDescription>Total: {totalItems} games</CardDescription>
             </div>
             <Button onClick={openCreateGameDialog} className="gap-2">
               <Plus className="h-4 w-4" />
@@ -215,6 +227,59 @@ const GamesManagement = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination controls */}
+          {totalItems > 0 && (
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3 mt-4 px-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  Showing {startItem}-{endItem} of {totalItems}
+                </span>
+                <span className="hidden md:inline-block">•</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">Rows per page</span>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={(value) =>
+                      changePageSize(Number(value) || 10)
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-[90px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => changePage(page - 1)}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} / {totalPages || 1}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => changePage(page + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -476,20 +541,59 @@ const GamesManagement = () => {
                                     <Label className="text-xs">
                                       Order Index
                                     </Label>
-                                    <Input
-                                      type="number"
-                                      className="w-24"
-                                      disabled={!canEdit}
-                                      value={a.orderIndex ?? 0}
-                                      onChange={(e) =>
-                                        updateAnswerField(
-                                          qIndex,
-                                          aIndex,
-                                          "orderIndex",
-                                          Number(e.target.value) || 0
-                                        )
-                                      }
-                                    />
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        disabled={!canEdit}
+                                        className="h-8 w-8"
+                                        onClick={() =>
+                                          updateAnswerField(
+                                            qIndex,
+                                            aIndex,
+                                            "orderIndex",
+                                            Math.max(
+                                              0,
+                                              (a.orderIndex ?? 0) - 1
+                                            )
+                                          )
+                                        }
+                                      >
+                                        -
+                                      </Button>
+                                      <Input
+                                        type="number"
+                                        className="w-20 h-8"
+                                        disabled={!canEdit}
+                                        value={a.orderIndex ?? 0}
+                                        onChange={(e) =>
+                                          updateAnswerField(
+                                            qIndex,
+                                            aIndex,
+                                            "orderIndex",
+                                            Number(e.target.value) || 0
+                                          )
+                                        }
+                                      />
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        disabled={!canEdit}
+                                        className="h-8 w-8"
+                                        onClick={() =>
+                                          updateAnswerField(
+                                            qIndex,
+                                            aIndex,
+                                            "orderIndex",
+                                            (a.orderIndex ?? 0) + 1
+                                          )
+                                        }
+                                      >
+                                        +
+                                      </Button>
+                                    </div>
                                   </div>
                                 ) : (
                                   <label className="flex items-center gap-2 text-xs">
