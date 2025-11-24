@@ -24,8 +24,8 @@ export interface IAccount {
 export type IGetAccount = Omit<IAccount, "access_token">
 
 export interface IUser {
-    _id: string;
     username: string;
+    _id: string;
     name: string;
     address: string;
     role: string;
@@ -70,4 +70,16 @@ export interface IPaginationMeta {
 export interface IPaginationRes<T> {
     meta: IPaginationMeta;
     result: T[];
+export interface ILesson {
+        _id: string;
+        lessontitle: string;
+        videourl: string;
+        description: string;
+
+        // Các trường Audit
+        createdAt: string;
+        updatedAt: string;
+        createdBy: string;
+        updatedBy: string;
+
 }
