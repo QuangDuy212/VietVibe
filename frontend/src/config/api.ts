@@ -1,4 +1,3 @@
-import { IAccount, IBackendRes, IGetAccount, IUser } from '@/types/common.type';
 import { IGame, IQuestion, IPaginationRes } from '@/types/common.type';
 import { IAccount, IBackendRes, IGetAccount, IUser, ILesson } from '@/types/common.type';
 import axios from './axios-customize';
@@ -27,10 +26,14 @@ export const callLogout = () => {
 
 // MODULE GAME
 
-// Lấy list game (có phân trang)
-export const callGetGames = (page = 1, size = 20) => {
-  return axios.get<IBackendRes<IPaginationRes<IGame>>>('/api/v1/games', {
-    params: { page, size },
+// Lấy list game (phân trang + filter BE)
+export const callGetGames = (page = 1, size = 20, filter?: string) => {
+  return axios.get<IBackendRes<IPaginationRes<IGame>>>("/api/v1/games", {
+    params: {
+      page,
+      size,
+      ...(filter ? { filter } : {}),
+    },
   });
 };
 
