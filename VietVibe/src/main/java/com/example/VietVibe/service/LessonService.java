@@ -11,7 +11,9 @@ import com.example.VietVibe.dto.request.LessonCreationRequest;
 import com.example.VietVibe.dto.request.LessonUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.LessonResponse;
+import com.example.VietVibe.dto.response.UserResponse;
 import com.example.VietVibe.entity.Lesson;
+import com.example.VietVibe.entity.User;
 import com.example.VietVibe.exception.AppException;
 import com.example.VietVibe.exception.ErrorCode;
 import com.example.VietVibe.mapper.LessonMapper;
@@ -82,5 +84,24 @@ public class LessonService {
         log.info("Get all lessons (no paging)");
         List<Lesson> list = lessonRepository.findAll();
         return list.stream().map(lessonMapper::toLessonResponse).toList();
+    }
+    public ApiPagination<LessonResponse> getAllLessonsPagination(Specification<Lesson> spec, Pageable pageable) {
+        log.info("Get all lessons");
+        Page<Lesson> pageLesson = this.lessonRepository.findAll(spec, pageable);
+
+        List<LessonResponse> listLesson = pageLesson.getContent().stream().map(lessonMapper::toLessonResponse).toList();
+
+        ApiPagination.Meta mt = new ApiPagination.Meta();
+
+        mt.setCurrent(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+
+        mt.setPages(pageLesson.getTotalPages());
+        mt.setTotal(pageLesson.getTotalElements());
+
+        return ApiPagination.<LessonResponse>builder()
+                .meta(mt)
+                .result(listLesson)
+                .build();
     }
 }
