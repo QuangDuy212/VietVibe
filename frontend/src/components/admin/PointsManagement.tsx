@@ -33,23 +33,10 @@ import {
   callDeletePoint,
   callSearchPoints,
 } from "@/config/api";
-
-interface PointItem {
-  id: number;
-  userId?: string;
-  userName?: string;
-  gameId?: number;
-  gameName?: string;
-  score?: number;
-  bonus?: number;
-  totalScore?: number;
-  correctAnswers?: number;
-  totalQuestions?: number;
-  createdAt?: string;
-}
+import { IPointSearchRequest, PointResponse } from "@/types/common.type";
 
 const PointsManagement = () => {
-  const [points, setPoints] = useState<PointItem[]>([]);
+  const [points, setPoints] = useState<PointResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   // pagination
@@ -59,12 +46,12 @@ const PointsManagement = () => {
   const [totalElements, setTotalElements] = useState<number>(0);
 
   // search form
-  const [search, setSearch] = useState<any>({
+  const [search, setSearch] = useState<IPointSearchRequest>({
     keyword: "",
     username: "",
     gameName: "",
-    minScore: "",
-    maxScore: "",
+    minScore: undefined,
+    maxScore: undefined,
   });
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
@@ -73,7 +60,7 @@ const PointsManagement = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // dialog / edit states
-  const [editing, setEditing] = useState<PointItem | null>(null);
+  const [editing, setEditing] = useState<PointResponse | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [form, setForm] = useState<{ total?: number }>({ total: 0 });
 
@@ -147,7 +134,7 @@ const PointsManagement = () => {
     }
   };
 
-  const openEditDialog = (p: PointItem) => {
+  const openEditDialog = (p: PointResponse) => {
     setEditing(p);
     const total = p.totalScore ?? (p.score ?? 0) + (p.bonus ?? 0);
     setForm({ total });
@@ -186,7 +173,7 @@ const PointsManagement = () => {
     }
   };
 
-  const openDeleteConfirm = (p: PointItem) => {
+  const openDeleteConfirm = (p: PointResponse) => {
     setDeleteTarget({
       id: p.id,
       label: `${p.userName ?? p.userId ?? ""} — ${p.gameName ?? ""}`,
@@ -227,8 +214,10 @@ const PointsManagement = () => {
       if (search.keyword) payload.keyword = search.keyword;
       if (search.username) payload.username = search.username;
       if (search.gameName) payload.gameName = search.gameName;
-      if (search.minScore) payload.minScore = Number(search.minScore);
-      if (search.maxScore) payload.maxScore = Number(search.maxScore);
+      if (search.minScore !== undefined)
+        payload.minScore = Number(search.minScore);
+      if (search.maxScore !== undefined)
+        payload.maxScore = Number(search.maxScore);
       const res = await callSearchPoints(payload, p, size);
       const pageData = extractPage(res);
       setPoints(pageData.content);
@@ -248,8 +237,8 @@ const PointsManagement = () => {
       keyword: "",
       username: "",
       gameName: "",
-      minScore: "",
-      maxScore: "",
+      minScore: undefined,
+      maxScore: undefined,
     });
     setIsSearching(false);
     setPage(0);
@@ -337,7 +326,13 @@ const PointsManagement = () => {
                   type="number"
                   value={search.minScore}
                   onChange={(e) =>
-                    setSearch({ ...search, minScore: e.target.value })
+                    setSearch({
+                      ...search,
+                      minScore:
+                        e.target.value === ""
+                          ? undefined
+                          : Number(e.target.value),
+                    })
                   }
                 />
               </div>
@@ -349,7 +344,13 @@ const PointsManagement = () => {
                   type="number"
                   value={search.maxScore}
                   onChange={(e) =>
-                    setSearch({ ...search, maxScore: e.target.value })
+                    setSearch({
+                      ...search,
+                      maxScore:
+                        e.target.value === ""
+                          ? undefined
+                          : Number(e.target.value),
+                    })
                   }
                 />
               </div>
@@ -359,12 +360,13 @@ const PointsManagement = () => {
                   <Button
                     onClick={() => {
                       setIsSearching(true);
-                      setPage(0);
+                      handleSearch(0);
                     }}
                     className="h-10"
                   >
                     Search
                   </Button>
+
                   <Button
                     variant="outline"
                     onClick={handleResetSearch}
@@ -386,9 +388,7 @@ const PointsManagement = () => {
                   <TableHead className="w-28 text-center">ID</TableHead>
                   <TableHead className="text-center">User Name</TableHead>
                   <TableHead className="text-center">Game Name</TableHead>
-                  <TableHead className="text-center">
-                    Total Score
-                  </TableHead>
+                  <TableHead className="text-center">Total Score</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>

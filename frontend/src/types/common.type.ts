@@ -49,6 +49,21 @@ export interface PointResponse {
     gameName?: string;
 }
 
+export interface IPointUpdateRequest {
+    score?: number;
+    bonus?: number;
+}
+
+export interface IPointSearchRequest {
+    keyword?: string;
+    username?: string;
+    gameName?: string;
+    minScore?: number;
+    maxScore?: number;
+}
+
+
+
 export interface IPaginationMeta {
     current: number;
     pageSize: number;
