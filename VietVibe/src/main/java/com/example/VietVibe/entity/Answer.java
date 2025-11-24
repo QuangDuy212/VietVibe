@@ -24,6 +24,7 @@ public class Answer {
 
     private String content;   // Nội dung đáp án
     
+    @JsonProperty("isCorrect")
     private boolean isCorrect; // Có phải đáp án đúng không (Chọn đáp án đúng và nghe)
     private Integer orderIndex; // Thứ tự câu (Sắp xếp câu)
 

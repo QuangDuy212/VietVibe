@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { 
+    callFetchLessons, 
+    callCreateLesson, 
+    callUpdateLesson, 
+    callDeleteLesson 
+} from "@/config/api";
+import { ILesson } from "@/types/common.type";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { BookOpen, Plus, Edit, Trash2 } from "lucide-react";
+import { BookOpen, Plus, Edit, Trash2, User, Calendar } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,29 +25,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Lesson {
-  id: string;
-  title: string;
-  description: string;
-  video_url: string;
-  difficulty: string;
-  duration: number;
-  created_at: string;
-}
+// Thư viện format ngày tháng (cần cài: npm install date-fns)
+import { format } from "date-fns"; 
 
 const LessonsManagement = () => {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [lessons, setLessons] = useState<ILesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingLesson, setEditingLesson] = useState<ILesson | null>(null);
+  const [deleteId, setDeleteId] = useState<string>(null);
+  
+  // State form khớp với field mới
   const [formData, setFormData] = useState({
-    title: "",
+    lessontitle: "",
+    videourl: "",
     description: "",
-    video_url: "",
-    difficulty: "Beginner",
-    duration: 30,
   });
 
   useEffect(() => {
@@ -53,13 +49,14 @@ const LessonsManagement = () => {
   const fetchLessons = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setLessons(data || []);
+      const res = await callFetchLessons();
+      if (res && res.data) {
+          // Lưu ý: Tùy backend trả về mảng trực tiếp hay bọc trong thuộc tính data
+          // Nếu backend trả về { data: [...] } thì dùng res.data.data
+          // Ở đây tôi giả sử res.data là mảng Lesson hoặc res.data.data
+          const dataList = Array.isArray(res.data) ? res.data : (res.data as any).data || [];
+          setLessons(dataList);
+      }
     } catch (error) {
       console.error("Error fetching lessons:", error);
       toast.error("Failed to load lessons list");
@@ -68,94 +65,74 @@ const LessonsManagement = () => {
     }
   };
 
-  const openCreateDialog = () => {
-    setEditingLesson(null);
-    setFormData({
-      title: "",
-      description: "",
-      video_url: "",
-      difficulty: "Beginner",
-      duration: 30,
-    });
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (lesson: Lesson) => {
-    setEditingLesson(lesson);
-    setFormData({
-      title: lesson.title,
-      description: lesson.description || "",
-      video_url: lesson.video_url || "",
-      difficulty: lesson.difficulty || "Beginner",
-      duration: lesson.duration || 30,
-    });
-    setDialogOpen(true);
-  };
-
   const handleSubmit = async () => {
     try {
-      if (!formData.title) {
-        toast.error("Please enter a title");
+      if (!formData.lessontitle) {
+        toast.error("Please enter a lesson title");
         return;
       }
 
+      let res;
       if (editingLesson) {
-        const { error } = await supabase
-          .from("lessons")
-          .update(formData)
-          .eq("id", editingLesson.id);
-
-        if (error) throw error;
-        toast.success("Lesson updated");
+        res = await callUpdateLesson(editingLesson._id, formData);
+        // Kiểm tra logic success tùy vào backend
+        if(res) toast.success("Lesson updated successfully");
       } else {
-        const { error } = await supabase
-          .from("lessons")
-          .insert([formData]);
-
-        if (error) throw error;
-        toast.success("Lesson created");
+        res = await callCreateLesson(formData);
+        if(res) toast.success("Lesson created successfully");
       }
-
+      
       setDialogOpen(false);
-      fetchLessons();
+      await fetchLessons(); 
+
     } catch (error) {
       console.error("Error saving lesson:", error);
-      toast.error("An error occurred");
+      toast.error("An error occurred while saving");
     }
   };
 
-  const deleteLesson = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("lessons")
-        .delete()
-        .eq("id", id);
+  const handleDelete = async () => {
+      if(!deleteId) return;
+      try {
+          await callDeleteLesson(deleteId);
+          toast.success("Lesson deleted successfully");
+          await fetchLessons();
+      } catch (error) {
+          console.error("Error deleting:", error);
+          toast.error("Could not delete lesson");
+      } finally {
+          setDeleteId(null);
+      }
+  }
 
-      if (error) throw error;
-      toast.success("Lesson deleted");
-      fetchLessons();
-    } catch (error) {
-      console.error("Error deleting lesson:", error);
-      toast.error("An error occurred");
-    } finally {
-      setDeleteId(null);
-    }
+  // Reset form khi mở dialog
+  const openCreateDialog = () => {
+    setEditingLesson(null);
+    setFormData({
+      lessontitle: "",
+      videourl: "",
+      description: "",
+    });
+    setDialogOpen(true);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Beginner": return "bg-green-500/10 text-green-600 border-green-500/20";
-      case "Intermediate": return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
-      case "Advanced": return "bg-red-500/10 text-red-600 border-red-500/20";
-      default: return "bg-gray-500/10 text-gray-600 border-gray-500/20";
-    }
+  // Fill dữ liệu khi mở dialog sửa
+  const openEditDialog = (lesson: ILesson) => {
+    setEditingLesson(lesson);
+    console.log(">>>>> check lession: ", lesson)
+    setFormData({
+      lessontitle: lesson.lessontitle,
+      videourl: lesson.videourl || "",
+      description: lesson.description || "",
+    });
+    setDialogOpen(true);
   };
 
   if (loading) {
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Loading...</div>
+          <div className="text-center text-muted-foreground">Loading data...</div>
         </CardContent>
       </Card>
     );
@@ -172,7 +149,7 @@ const LessonsManagement = () => {
                 Lessons List
               </CardTitle>
               <CardDescription>
-                Total: {lessons.length} lessons
+                Manage your course content
               </CardDescription>
             </div>
             <Button onClick={openCreateDialog} className="gap-2">
@@ -186,24 +163,34 @@ const LessonsManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Title</TableHead>
+                  <TableHead>Lesson Title</TableHead>
+                  <TableHead>Video URL</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Difficulty</TableHead>
-                  <TableHead>Duration</TableHead>
+                  <TableHead>Created Info</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {lessons.map((lesson) => (
-                  <TableRow key={lesson.id} className="hover:bg-muted/30">
-                    <TableCell className="font-medium">{lesson.title}</TableCell>
-                    <TableCell className="max-w-xs truncate">{lesson.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getDifficultyColor(lesson.difficulty)}>
-                        {lesson.difficulty}
-                      </Badge>
+                  <TableRow key={lesson._id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">{lesson.lessontitle}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">
+                        {lesson.videourl}
                     </TableCell>
-                    <TableCell>{lesson.duration} mins</TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground">
+                        {lesson.description}
+                    </TableCell>
+                    <TableCell>
+                        <div className="flex flex-col text-xs text-muted-foreground gap-1">
+                            <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" /> {lesson.createdBy}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" /> 
+                                {lesson.createdAt ? format(new Date(lesson.createdAt), 'dd/MM/yyyy') : 'N/A'}
+                            </span>
+                        </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -216,7 +203,7 @@ const LessonsManagement = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => setDeleteId(lesson.id)}
+                          onClick={() => setDeleteId(lesson._id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -224,12 +211,20 @@ const LessonsManagement = () => {
                     </TableCell>
                   </TableRow>
                 ))}
+                {lessons.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            No lessons found.
+                        </TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
+      {/* Dialog Create/Edit */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -237,64 +232,39 @@ const LessonsManagement = () => {
               {editingLesson ? "Edit Lesson" : "Add New Lesson"}
             </DialogTitle>
             <DialogDescription>
-              Fill in the lesson information below
+              Enter lesson details below
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="lessontitle">Lesson Title *</Label>
               <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter lesson title"
+                id="lessontitle"
+                value={formData.lessontitle}
+                onChange={(e) => setFormData({ ...formData, lessontitle: e.target.value })}
+                placeholder="Ex: Introduction to Java"
               />
             </div>
+            
+            <div>
+              <Label htmlFor="videourl">Video URL</Label>
+              <Input
+                id="videourl"
+                value={formData.videourl}
+                onChange={(e) => setFormData({ ...formData, videourl: e.target.value })}
+                placeholder="Ex: https://youtube.com/..."
+              />
+            </div>
+
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter lesson description"
-                rows={3}
+                placeholder="Enter lesson content summary..."
+                rows={4}
               />
-            </div>
-            <div>
-              <Label htmlFor="video_url">Video URL</Label>
-              <Input
-                id="video_url"
-                value={formData.video_url}
-                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="difficulty">Difficulty</Label>
-                <Select
-                  value={formData.difficulty}
-                  onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Beginner">Beginner</SelectItem>
-                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                    <SelectItem value="Advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="duration">Duration (minutes)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>
@@ -308,6 +278,7 @@ const LessonsManagement = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Alert Dialog Delete */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -318,7 +289,7 @@ const LessonsManagement = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && deleteLesson(deleteId)}>
+            <AlertDialogAction onClick={handleDelete}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

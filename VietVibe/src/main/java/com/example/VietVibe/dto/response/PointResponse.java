@@ -14,7 +14,8 @@ public class PointResponse {
     private String userId;
     private String userName;
     private Long gameId;      
-    private String gameType;       
+    private String gameType; 
+    private String gameName;      
     private int score;
     private int bonus;
     private int correctAnswers;
