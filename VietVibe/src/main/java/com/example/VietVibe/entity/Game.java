@@ -38,4 +38,7 @@ public class Game {
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     List<Question> questions = new ArrayList<>();
+
+    @OneToOne(mappedBy = "game")
+    private Lesson lesson;
 }
