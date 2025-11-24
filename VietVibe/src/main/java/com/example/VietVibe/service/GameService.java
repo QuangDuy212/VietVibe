@@ -65,10 +65,25 @@ public class GameService {
     }
 
     public GameResponse create(GameCreationRequest request) {
-        Game game = gameMapper.toGame(request);
-        gameRepository.save(game);
-        return gameMapper.toGameResponse(game);
+    Game game = gameMapper.toGame(request);
+
+    if (game.getQuestions() != null) {
+        game.getQuestions().forEach(q -> {
+            q.setGame(game);
+
+            if (q.getAnswers() != null) {
+                q.getAnswers().forEach(a -> {
+                    a.setQuestion(q);
+                });
+            }
+        });
+        game.setTotalQuestion(game.getQuestions().size());
     }
+
+    Game saved = gameRepository.save(game);
+    return gameMapper.toGameResponse(saved);
+}
+
 
     @Transactional
     public GameResponse updateGame(Long id, GameUpdateRequest request) {
