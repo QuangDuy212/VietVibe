@@ -12,5 +12,6 @@ public interface PointMapper {
     @Mapping(target = "userName", source = "user.username")
     @Mapping(target = "gameId", source = "game.id")
     @Mapping(target = "gameType", source = "game.type")
+    @Mapping(target = "gameName", source = "game.name")
     PointResponse toResponse(Point point);
 }
