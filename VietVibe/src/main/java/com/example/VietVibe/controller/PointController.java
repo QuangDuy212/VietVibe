@@ -1,6 +1,6 @@
 package com.example.VietVibe.controller;
-import com.example.VietVibe.entity.Point;
 
+import com.example.VietVibe.entity.Point;
 
 import com.turkraft.springfilter.boot.Filter;
 import org.springframework.data.jpa.domain.Specification;
@@ -23,7 +23,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-
 import java.util.List;
 
 @RestController
@@ -41,7 +40,8 @@ public class PointController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiPagination<PointResponse>> getAllPoints(@Filter Specification<Point> spec, Pageable pageable) {
+    public ResponseEntity<ApiPagination<PointResponse>> getAllPoints(@Filter Specification<Point> spec,
+            Pageable pageable) {
         return ResponseEntity.ok(pointService.getAllPoints(spec, pageable));
     }
 
@@ -60,13 +60,11 @@ public class PointController {
         return ResponseEntity.ok(pointService.getTotalGames(userId));
     }
 
-    
     @GetMapping("/user/{username}/history")
-@PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
-public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String username) {
-    return ResponseEntity.ok(pointService.getHistory(username));
-}
-
+    @PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
+    public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String username) {
+        return ResponseEntity.ok(pointService.getHistory(username));
+    }
 
     @PutMapping("/{pointId}")
     public ResponseEntity<PointResponse> updatePoint(
@@ -114,7 +112,7 @@ public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String usern
     // PAGED search: POST /points/search?page=&size=&sort=
     @PostMapping("/search")
     public ResponseEntity<ApiPagination<PointResponse>> search(@RequestBody PointSearchRequest request,
-                                                              @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault(size = 10) Pageable pageable) {
         Sort effectiveSort = pageable.getSort().isSorted()
                 ? pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id"))
                 : Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
@@ -123,7 +121,6 @@ public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String usern
         return ResponseEntity.ok(pointService.search(request, effectivePageable));
     }
 
-   
     @GetMapping("/history")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<PointResponse>> getMyHistory(Authentication authentication) {
