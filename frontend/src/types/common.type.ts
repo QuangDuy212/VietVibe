@@ -34,3 +34,29 @@ export interface IUser {
     createdBy: string;
     updatedBy: string;
 }
+
+export interface PointResponse {
+    id: number;
+    score: number;
+    bonus: number;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    totalScore?: number;
+    createdAt?: string;
+    userId?: string;
+    userName?: string;
+    gameId?: number;
+    gameName?: string;
+}
+
+export interface IPaginationMeta {
+    current: number;
+    pageSize: number;
+    pages: number;
+    total: number;
+}
+
+export interface IPaginationRes<T> {
+    meta: IPaginationMeta;
+    result: T[];
+}
