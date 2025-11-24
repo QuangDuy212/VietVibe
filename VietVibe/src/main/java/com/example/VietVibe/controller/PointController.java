@@ -1,14 +1,28 @@
 package com.example.VietVibe.controller;
 
+import com.example.VietVibe.entity.Point;
+
+import com.turkraft.springfilter.boot.Filter;
+import org.springframework.data.jpa.domain.Specification;
 import com.example.VietVibe.dto.request.PointRequest;
 import com.example.VietVibe.dto.request.PointSearchRequest;
 import com.example.VietVibe.dto.request.PointUpdateRequest;
 import com.example.VietVibe.dto.response.PointResponse;
+import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.service.PointService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -18,88 +32,99 @@ public class PointController {
     @Autowired
     private PointService pointService;
 
-    // Chấm điểm và lưu điểm
     @PostMapping
-    public PointResponse submitPoint(@RequestBody PointRequest request) {
-        return pointService.addPoint(request);
+    public ResponseEntity<PointResponse> submitPoint(@RequestBody PointRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(pointService.addPoint(request));
     }
 
-    //In tất cả point có của website
     @GetMapping
-    public List<PointResponse> getAllPoints() {
-        return pointService.getAllPoints();
+    public ResponseEntity<ApiPagination<PointResponse>> getAllPoints(@Filter Specification<Point> spec,
+            Pageable pageable) {
+        return ResponseEntity.ok(pointService.getAllPoints(spec, pageable));
     }
-    
 
-    // Tổng điểm của user
     @GetMapping("/user/{userId}/total")
-    public int getTotalScore(@PathVariable String userId) {
-        return pointService.getTotalScore(userId);
+    public ResponseEntity<Integer> getTotalScore(@PathVariable String userId) {
+        return ResponseEntity.ok(pointService.getTotalScore(userId));
     }
 
-    // Điểm trung bình của user
     @GetMapping("/user/{userId}/average")
-    public double getAverageScore(@PathVariable String userId) {
-        return pointService.getAverageScore(userId);
+    public ResponseEntity<Double> getAverageScore(@PathVariable String userId) {
+        return ResponseEntity.ok(pointService.getAverageScore(userId));
     }
 
-    // Số game đã làm của user
     @GetMapping("/user/{userId}/games")
-    public int getTotalGames(@PathVariable String userId) {
-        return pointService.getTotalGames(userId);
+    public ResponseEntity<Integer> getTotalGames(@PathVariable String userId) {
+        return ResponseEntity.ok(pointService.getTotalGames(userId));
     }
 
-    // Lịch sử làm bài của user
-    @GetMapping("/user/{userId}/history")
-    public List<PointResponse> getHistory(@PathVariable String userId) {
-        return pointService.getHistory(userId);
+    @GetMapping("/user/{username}/history")
+    @PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
+    public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String username) {
+        return ResponseEntity.ok(pointService.getHistory(username));
     }
 
-    // Chỉnh sửa điểm theo id
     @PutMapping("/{pointId}")
-    public PointResponse updatePoint(@PathVariable Long pointId, @RequestBody PointUpdateRequest request) {
+    public ResponseEntity<PointResponse> updatePoint(
+            @PathVariable Long pointId,
+            @RequestBody PointUpdateRequest request) {
         request.setPointId(pointId);
-        return pointService.updatePoint(request);
+        return ResponseEntity.ok(pointService.updatePoint(request));
     }
 
-    // Xóa điểm theo id
     @DeleteMapping("/{pointId}")
-    public void deletePoint(@PathVariable Long pointId) {
+    public ResponseEntity<Void> deletePoint(@PathVariable Long pointId) {
         pointService.deletePoint(pointId);
+        return ResponseEntity.noContent().build();
     }
 
-    // Thống kê điểm cao/thấp nhất
     @GetMapping("/max")
-    public int getMaxScore() {
-        return pointService.getMaxScore();
+    public ResponseEntity<Integer> getMaxScore() {
+        return ResponseEntity.ok(pointService.getMaxScore());
     }
 
     @GetMapping("/min")
-    public int getMinScore() {
-        return pointService.getMinScore();
+    public ResponseEntity<Integer> getMinScore() {
+        return ResponseEntity.ok(pointService.getMinScore());
     }
 
-    // Lọc theo khoảng điểm
     @GetMapping("/range/{min}/{max}")
-    public List<PointResponse> getPointsByScoreRange(@PathVariable int min, @PathVariable int max) {
-        return pointService.getPointsByScoreRange(min, max);
+    public ResponseEntity<List<PointResponse>> getPointsByScoreRange(
+            @PathVariable int min,
+            @PathVariable int max) {
+        return ResponseEntity.ok(pointService.getPointsByScoreRange(min, max));
     }
 
-    // Reset điểm user
     @DeleteMapping("/user/{userId}/reset")
-    public void resetUserPoints(@PathVariable String userId) {
+    public ResponseEntity<Void> resetUserPoints(@PathVariable String userId) {
         pointService.resetUserPoints(userId);
+        return ResponseEntity.noContent().build();
     }
 
-    // Reset điểm game
     @DeleteMapping("/game/{gameId}/reset")
-    public void resetGamePoints(@PathVariable Long gameId) {
+    public ResponseEntity<Void> resetGamePoints(@PathVariable Long gameId) {
         pointService.resetGamePoints(gameId);
+        return ResponseEntity.noContent().build();
     }
 
-    // Tìm kiếm
+    // PAGED search: POST /points/search?page=&size=&sort=
     @PostMapping("/search")
-    public List<PointResponse> search(@RequestBody PointSearchRequest request) {
-        return pointService.search(request);
+    public ResponseEntity<ApiPagination<PointResponse>> search(@RequestBody PointSearchRequest request,
+            @PageableDefault(size = 10) Pageable pageable) {
+        Sort effectiveSort = pageable.getSort().isSorted()
+                ? pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id"))
+                : Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+
+        Pageable effectivePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), effectiveSort);
+        return ResponseEntity.ok(pointService.search(request, effectivePageable));
+    }
+
+    @GetMapping("/history")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PointResponse>> getMyHistory(Authentication authentication) {
+        String currentUserId = authentication.getName();
+        return ResponseEntity.ok(pointService.getHistory(currentUserId));
     }
 }
