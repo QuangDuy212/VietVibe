@@ -12,12 +12,10 @@ import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.service.PointService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,38 +30,10 @@ public class PointController {
     @Autowired
     private PointService pointService;
 
-    @PostMapping
-    public ResponseEntity<PointResponse> submitPoint(@RequestBody PointRequest request) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(pointService.addPoint(request));
-    }
-
     @GetMapping
     public ResponseEntity<ApiPagination<PointResponse>> getAllPoints(@Filter Specification<Point> spec,
             Pageable pageable) {
         return ResponseEntity.ok(pointService.getAllPoints(spec, pageable));
-    }
-
-    @GetMapping("/user/{userId}/total")
-    public ResponseEntity<Integer> getTotalScore(@PathVariable String userId) {
-        return ResponseEntity.ok(pointService.getTotalScore(userId));
-    }
-
-    @GetMapping("/user/{userId}/average")
-    public ResponseEntity<Double> getAverageScore(@PathVariable String userId) {
-        return ResponseEntity.ok(pointService.getAverageScore(userId));
-    }
-
-    @GetMapping("/user/{userId}/games")
-    public ResponseEntity<Integer> getTotalGames(@PathVariable String userId) {
-        return ResponseEntity.ok(pointService.getTotalGames(userId));
-    }
-
-    @GetMapping("/user/{username}/history")
-    @PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
-    public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String username) {
-        return ResponseEntity.ok(pointService.getHistory(username));
     }
 
     @PutMapping("/{pointId}")
@@ -90,26 +60,11 @@ public class PointController {
         return ResponseEntity.ok(pointService.getMinScore());
     }
 
-    @GetMapping("/range/{min}/{max}")
-    public ResponseEntity<List<PointResponse>> getPointsByScoreRange(
-            @PathVariable int min,
-            @PathVariable int max) {
-        return ResponseEntity.ok(pointService.getPointsByScoreRange(min, max));
+    @GetMapping("/user/{userId}/total")
+    public ResponseEntity<Integer> getTotalScore(@PathVariable String userId) {
+        return ResponseEntity.ok(pointService.getTotalScore(userId));
     }
 
-    @DeleteMapping("/user/{userId}/reset")
-    public ResponseEntity<Void> resetUserPoints(@PathVariable String userId) {
-        pointService.resetUserPoints(userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/game/{gameId}/reset")
-    public ResponseEntity<Void> resetGamePoints(@PathVariable Long gameId) {
-        pointService.resetGamePoints(gameId);
-        return ResponseEntity.noContent().build();
-    }
-
-    // PAGED search: POST /points/search?page=&size=&sort=
     @PostMapping("/search")
     public ResponseEntity<ApiPagination<PointResponse>> search(@RequestBody PointSearchRequest request,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -119,6 +74,12 @@ public class PointController {
 
         Pageable effectivePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), effectiveSort);
         return ResponseEntity.ok(pointService.search(request, effectivePageable));
+    }
+
+    @GetMapping("/user/{username}/history")
+    @PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
+    public ResponseEntity<List<PointResponse>> getHistory(@PathVariable String username) {
+        return ResponseEntity.ok(pointService.getHistory(username));
     }
 
     @GetMapping("/history")
