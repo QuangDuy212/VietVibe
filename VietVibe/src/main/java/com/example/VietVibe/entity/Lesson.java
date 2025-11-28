@@ -46,8 +46,8 @@ public class Lesson {
     List<User> users;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "id" )
-    private Game game;
+    @JoinColumn(name = "game_id" )
+    Game game;
 
     @PrePersist
     public void handleBeforeCreate() {

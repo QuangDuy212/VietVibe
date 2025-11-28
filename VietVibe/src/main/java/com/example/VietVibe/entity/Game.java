@@ -40,5 +40,5 @@ public class Game {
     List<Question> questions = new ArrayList<>();
 
     @OneToOne(mappedBy = "game")
-    private Lesson lesson;
+    Lesson lesson;
 }
