@@ -70,6 +70,8 @@ export interface IPaginationMeta {
 export interface IPaginationRes<T> {
     meta: IPaginationMeta;
     result: T[];
+}
+
 export interface ILesson {
         _id: string;
         lessontitle: string;

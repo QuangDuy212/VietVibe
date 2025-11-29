@@ -42,11 +42,11 @@ public class Lesson {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(value = { "lessons" })
-    @JoinTable(name = "user_lesson", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "lesson_id"))
+    @JoinTable(name = "user_lesson", joinColumns = @JoinColumn(name = "lesson_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     List<User> users;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "game_id" )
+    @JoinColumn(name = "game_id")
     Game game;
 
     @PrePersist

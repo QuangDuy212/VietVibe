@@ -2,6 +2,7 @@ package com.example.VietVibe.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -10,14 +11,18 @@ import org.springframework.stereotype.Service;
 import com.example.VietVibe.dto.request.LessonCreationRequest;
 import com.example.VietVibe.dto.request.LessonUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
+import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.LessonResponse;
 import com.example.VietVibe.dto.response.UserResponse;
+import com.example.VietVibe.entity.Game;
 import com.example.VietVibe.entity.Lesson;
 import com.example.VietVibe.entity.User;
 import com.example.VietVibe.exception.AppException;
 import com.example.VietVibe.exception.ErrorCode;
 import com.example.VietVibe.mapper.LessonMapper;
 import com.example.VietVibe.repository.LessonRepository;
+import com.example.VietVibe.repository.UserRepository;
+import com.example.VietVibe.util.SecurityUtil;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 public class LessonService {
     LessonRepository lessonRepository;
     LessonMapper lessonMapper;
+    @Autowired
+    UserRepository userRepository;
 
     public LessonResponse create(LessonCreationRequest request) {
         log.info("Create a lesson");
@@ -85,6 +92,7 @@ public class LessonService {
         List<Lesson> list = lessonRepository.findAll();
         return list.stream().map(lessonMapper::toLessonResponse).toList();
     }
+
     public ApiPagination<LessonResponse> getAllLessonsPagination(Specification<Lesson> spec, Pageable pageable) {
         log.info("Get all lessons");
         Page<Lesson> pageLesson = this.lessonRepository.findAll(spec, pageable);
@@ -104,4 +112,24 @@ public class LessonService {
                 .result(listLesson)
                 .build();
     }
+
+    // public ApiPagination<LessonResponse> getUserLessons(Pageable pageable) {
+    //     String currentUsername = SecurityUtil.getCurrentUserLogin()
+    //             .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+
+    //     User currentUser = userRepository.findByUsername(currentUsername)
+    //             .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    //     Page<Lesson> page = lessonRepository.findByUsersContainingOrderByCreatedAtDesc(currentUser, pageable);
+
+    //     List<LessonResponse> list = page.getContent().stream().map(lessonMapper::toLessonResponse).toList();
+
+    //     ApiPagination.Meta mt = new ApiPagination.Meta();
+    //     mt.setCurrent(pageable.getPageNumber() + 1);
+    //     mt.setPageSize(pageable.getPageSize());
+    //     mt.setPages(page.getTotalPages());
+    //     mt.setTotal(page.getTotalElements());
+
+    //     return ApiPagination.<LessonResponse>builder().meta(mt).result(list).build();
+    // }
+
 }

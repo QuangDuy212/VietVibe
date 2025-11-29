@@ -20,6 +20,7 @@ import com.example.VietVibe.dto.request.LessonCreationRequest;
 import com.example.VietVibe.dto.request.LessonUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.ApiString;
+import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.LessonResponse;
 import com.example.VietVibe.entity.Lesson;
 import com.example.VietVibe.service.LessonService;
@@ -52,7 +53,13 @@ public class LessonController {
     ResponseEntity<ApiPagination<LessonResponse>> getLessons(@Filter Specification<Lesson> spec, Pageable pageable) {
         return ResponseEntity.ok().body(this.lessonService.getAllLessons(spec, pageable));
     }
-    
+
+    // @GetMapping("/user")
+    // @ApiMessage("Get user lessons success")
+    // ResponseEntity<ApiPagination<LessonResponse>> getUserLessons(Pageable pageable) {
+    //     return ResponseEntity.ok().body(this.lessonService.getUserLessons(pageable));
+    // }
+
     @GetMapping("/all")
     @ApiMessage("Get all lessons (no paging) success")
     ResponseEntity<List<LessonResponse>> getAllNoPaging() {

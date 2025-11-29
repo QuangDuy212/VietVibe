@@ -94,6 +94,12 @@ export const callFetchLessons = () => {
     return axios.get<IBackendRes<ILesson[]>>(`/${PREFIX_API}/all`);
 }
 
+export const callFetchLessonsPaginated = (page: number = 1, size: number = 5) => {
+  return axios.get<IBackendRes<IPaginationRes<ILesson>>>(`/api/v1/lessons`, {
+    params: { page, size }
+  });
+};
+
 export const callCreateLesson = (lesson: {
     lessontitle: string;
     videourl: string;
