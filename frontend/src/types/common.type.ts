@@ -24,8 +24,8 @@ export interface IAccount {
 export type IGetAccount = Omit<IAccount, "access_token">
 
 export interface IUser {
-    _id: string;
     username: string;
+    _id: string;
     name: string;
     address: string;
     role: string;
