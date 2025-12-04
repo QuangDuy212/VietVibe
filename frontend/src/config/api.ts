@@ -1,8 +1,6 @@
-
-import { IGame, IQuestion, IPaginationRes } from '@/types/common.type';
-import { IAccount, IBackendRes, IGetAccount, IUser, ILesson } from '@/types/common.type';
+import { IAccount, IBackendRes, IGetAccount, IPointSearchRequest, IPointUpdateRequest, IUser } from '@/types/common.type';
 import axios from './axios-customize';
-import { all } from 'axios';
+import { PointResponse, IPaginationRes } from '@/types/common.type';
 
 //MODULE AUTH
 export const callFetchAccount = () => {
@@ -116,19 +114,19 @@ export const callDeleteLesson = (id: string) => {
 //MODULE CRUD POINT 
 export const callGetAllPoints = (page = 0, size = 10, sort?: string) => {
     const oneIndexedPage = Math.max(1, page + 1);
-    return axios.get<unknown>('/api/v1/points', { params: { page: oneIndexedPage, size, sort } });
+    return axios.get<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points', { params: { page: oneIndexedPage, size, sort } });
 };
 
-export const callUpdatePoint = (pointId: number, data: unknown) => {
-    return axios.put<IBackendRes<unknown>>(`/api/v1/points/${pointId}`, data);
+export const callUpdatePoint = (pointId: number, data: IPointUpdateRequest) => {
+    return axios.put<IBackendRes<PointResponse>>(`/api/v1/points/${pointId}`, data);
 };
 
 export const callDeletePoint = (pointId: number) => {
-    return axios.delete<IBackendRes<unknown>>(`/api/v1/points/${pointId}`);
+    return axios.delete<IBackendRes<null>>(`/api/v1/points/${pointId}`);
 };
 
-export const callSearchPoints = (data: unknown, page = 0, size = 10, sort?: string) => {
+export const callSearchPoints = (data: IPointSearchRequest, page = 0, size = 10, sort?: string) => {
     const oneIndexedPage = Math.max(1, page + 1);
-    return axios.post<unknown>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
+    return axios.post<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
 };
 

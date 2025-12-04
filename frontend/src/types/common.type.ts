@@ -35,30 +35,34 @@ export interface IUser {
     updatedBy: string;
 }
 
-export interface IAnswer {
-  _id?: string;
-  content: string;
-  isCorrect?: boolean;   
-  correct?: boolean; 
-  orderIndex?: number;
+export interface PointResponse {
+    id: number;
+    score: number;
+    bonus: number;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    totalScore?: number;
+    createdAt?: string;
+    userId?: string;
+    userName?: string;
+    gameId?: number;
+    gameName?: string;
+}
+
+export interface IPointUpdateRequest {
+    score?: number;
+    bonus?: number;
+}
+
+export interface IPointSearchRequest {
+    keyword?: string;
+    username?: string;
+    gameName?: string;
+    minScore?: number;
+    maxScore?: number;
 }
 
 
-export interface IQuestion {
-  _id?: string;
-  content: string;
-  imageUrl?: string;
-  audioUrl?: string;
-  answers: IAnswer[];
-}
-
-export interface IGame {
-    _id: string;          
-    name: string;
-    description: string;
-    type: "MULTIPLE_CHOICE" | "SENTENCE_ORDER" | "LISTENING_CHOICE";
-    questions: IQuestion[];
-}
 
 export interface IPaginationMeta {
     current: number;
@@ -70,16 +74,4 @@ export interface IPaginationMeta {
 export interface IPaginationRes<T> {
     meta: IPaginationMeta;
     result: T[];
-export interface ILesson {
-        _id: string;
-        lessontitle: string;
-        videourl: string;
-        description: string;
-
-        // Các trường Audit
-        createdAt: string;
-        updatedAt: string;
-        createdBy: string;
-        updatedBy: string;
-
 }
