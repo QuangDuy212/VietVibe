@@ -1,5 +1,5 @@
 
-import { IGame, IQuestion, IPaginationRes } from '@/types/common.type';
+import { IGame, IQuestion, IPaginationRes, IVocabulary, ILessonDetail } from '@/types/common.type';
 import { IAccount, IBackendRes, IGetAccount, IUser, ILesson } from '@/types/common.type';
 import axios from './axios-customize';
 import { all } from 'axios';
@@ -118,6 +118,12 @@ export const callUpdateLesson = (id: string, lesson: {
 
 export const callDeleteLesson = (id: string) => {
     return axios.delete<IBackendRes<unknown>>(`/${PREFIX_API}/${id}`);
+}
+export const callFetchVocbulary = (lessonId: string) => {
+  return axios.get<IBackendRes<IVocabulary[]>>(`/api/v1/vocabularies/lesson/${lessonId}`);
+}
+export const callFetchLessonDetail = (lessonId: string) => {
+  return axios.get<IBackendRes<ILessonDetail[]>>(`/api/v1/lesson-details/lesson/${lessonId}`);
 }
 //MODULE CRUD POINT 
 export const callGetAllPoints = (page = 0, size = 10, sort?: string) => {

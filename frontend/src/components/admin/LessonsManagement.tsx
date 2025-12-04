@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { 
-    callFetchLessons, 
-    callCreateLesson, 
-    callUpdateLesson, 
-    callDeleteLesson 
+import {
+  
+  callFetchLessonsPaginated,
+  callCreateLesson,
+  callUpdateLesson,
+  callDeleteLesson
 } from "@/config/api";
-import { ILesson } from "@/types/common.type";
+
+import { ILesson, IPaginationRes, IPaginationMeta } from "@/types/common.type";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { BookOpen, Plus, Edit, Trash2, User, Calendar } from "lucide-react";
+import {
+  BookOpen, Plus, Edit, Trash2, User, Calendar,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,37 +30,45 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// Thư viện format ngày tháng (cần cài: npm install date-fns)
-import { format } from "date-fns"; 
+import { format } from "date-fns";
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 const LessonsManagement = () => {
   const [lessons, setLessons] = useState<ILesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<ILesson | null>(null);
-  const [deleteId, setDeleteId] = useState<string>(null);
-  
-  // State form khớp với field mới
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalLessons, setTotalLessons] = useState(0);
+
   const [formData, setFormData] = useState({
     lessontitle: "",
     videourl: "",
     description: "",
   });
 
+  
   useEffect(() => {
     fetchLessons();
-  }, []);
+  }, [page, pageSize]);
 
   const fetchLessons = async () => {
     try {
       setLoading(true);
-      const res = await callFetchLessons();
+      const res = await callFetchLessonsPaginated(page, pageSize);
+
       if (res && res.data) {
-          // Lưu ý: Tùy backend trả về mảng trực tiếp hay bọc trong thuộc tính data
-          // Nếu backend trả về { data: [...] } thì dùng res.data.data
-          // Ở đây tôi giả sử res.data là mảng Lesson hoặc res.data.data
-          const dataList = Array.isArray(res.data) ? res.data : (res.data as any).data || [];
-          setLessons(dataList);
+        // axios instance returns res.data (IBackendRes) directly from interceptor,
+        // so `res` is already IBackendRes<IPaginationRes<ILesson>> and its `data` is the
+        // pagination payload. Use `res.data` (not `res.data.data`).
+        const responseData: IPaginationRes<ILesson> = res.data;
+        setLessons(responseData?.result || []);
+        setTotalLessons(responseData?.meta?.total || 0);
       }
     } catch (error) {
       console.error("Error fetching lessons:", error);
@@ -75,15 +88,15 @@ const LessonsManagement = () => {
       let res;
       if (editingLesson) {
         res = await callUpdateLesson(editingLesson._id, formData);
-        // Kiểm tra logic success tùy vào backend
-        if(res) toast.success("Lesson updated successfully");
+        if (res) toast.success("Lesson updated successfully");
       } else {
         res = await callCreateLesson(formData);
-        if(res) toast.success("Lesson created successfully");
+        if (res) toast.success("Lesson created successfully");
+        setPage(1); // Quay về trang 1 khi tạo mới để thấy bài học
       }
-      
+
       setDialogOpen(false);
-      await fetchLessons(); 
+      await fetchLessons();
 
     } catch (error) {
       console.error("Error saving lesson:", error);
@@ -92,20 +105,25 @@ const LessonsManagement = () => {
   };
 
   const handleDelete = async () => {
-      if(!deleteId) return;
-      try {
-          await callDeleteLesson(deleteId);
-          toast.success("Lesson deleted successfully");
-          await fetchLessons();
-      } catch (error) {
-          console.error("Error deleting:", error);
-          toast.error("Could not delete lesson");
-      } finally {
-          setDeleteId(null);
+    if (!deleteId) return;
+    try {
+      await callDeleteLesson(deleteId);
+      toast.success("Lesson deleted successfully");
+
+      // Điều chỉnh trang nếu trang hiện tại không còn dữ liệu
+      if (lessons.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        await fetchLessons();
       }
+    } catch (error) {
+      console.error("Error deleting:", error);
+      toast.error("Could not delete lesson");
+    } finally {
+      setDeleteId(null);
+    }
   }
 
-  // Reset form khi mở dialog
   const openCreateDialog = () => {
     setEditingLesson(null);
     setFormData({
@@ -116,10 +134,9 @@ const LessonsManagement = () => {
     setDialogOpen(true);
   };
 
-  // Fill dữ liệu khi mở dialog sửa
   const openEditDialog = (lesson: ILesson) => {
     setEditingLesson(lesson);
-    console.log(">>>>> check lession: ", lesson)
+    console.log(">>>>> check lession: ", lesson) // Giữ nguyên log này nếu cần debug
     setFormData({
       lessontitle: lesson.lessontitle,
       videourl: lesson.videourl || "",
@@ -127,6 +144,24 @@ const LessonsManagement = () => {
     });
     setDialogOpen(true);
   };
+
+  //  PHÂN TRANG
+  const totalPages = Math.ceil(totalLessons / pageSize);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (value: string) => {
+    const newPageSize = parseInt(value, 10);
+    setPageSize(newPageSize);
+    setPage(1);
+  }
+
 
   if (loading) {
     return (
@@ -175,21 +210,21 @@ const LessonsManagement = () => {
                   <TableRow key={lesson._id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{lesson.lessontitle}</TableCell>
                     <TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">
-                        {lesson.videourl}
+                      {lesson.videourl}
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">
-                        {lesson.description}
+                      {lesson.description}
                     </TableCell>
                     <TableCell>
-                        <div className="flex flex-col text-xs text-muted-foreground gap-1">
-                            <span className="flex items-center gap-1">
-                                <User className="h-3 w-3" /> {lesson.createdBy}
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" /> 
-                                {lesson.createdAt ? format(new Date(lesson.createdAt), 'dd/MM/yyyy') : 'N/A'}
-                            </span>
-                        </div>
+                      <div className="flex flex-col text-xs text-muted-foreground gap-1">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3" /> {lesson.createdBy}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {lesson.createdAt ? format(new Date(lesson.createdAt), 'dd/MM/yyyy') : 'N/A'}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
@@ -212,15 +247,75 @@ const LessonsManagement = () => {
                   </TableRow>
                 ))}
                 {lessons.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            No lessons found.
-                        </TableCell>
-                    </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No lessons found.
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
+
+          {/* 💡 GIAO DIỆN PHÂN TRANG */}
+          {totalLessons > 0 && (
+            <div className="flex items-center justify-between p-4 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <Select onValueChange={handlePageSizeChange} value={String(pageSize)}>
+                  <SelectTrigger className="w-[70px]">
+                    <SelectValue placeholder={pageSize} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground">
+                  Page **{page}** of **{totalPages}** ({totalLessons} total items)
+                </span>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(1)}
+                    disabled={!hasPrevPage}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={!hasPrevPage}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={!hasNextPage}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={!hasNextPage}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -245,7 +340,7 @@ const LessonsManagement = () => {
                 placeholder="Ex: Introduction to Java"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="videourl">Video URL</Label>
               <Input

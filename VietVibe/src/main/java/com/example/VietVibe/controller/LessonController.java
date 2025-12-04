@@ -22,7 +22,9 @@ import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.ApiString;
 import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.LessonResponse;
+import com.example.VietVibe.dto.response.UserResponse;
 import com.example.VietVibe.entity.Lesson;
+import com.example.VietVibe.entity.User;
 import com.example.VietVibe.service.LessonService;
 import com.example.VietVibe.util.annotation.ApiMessage;
 import com.example.VietVibe.util.annotation.PublicEndpoint;
@@ -51,7 +53,7 @@ public class LessonController {
     @GetMapping
     @ApiMessage("Get all lessons success")
     ResponseEntity<ApiPagination<LessonResponse>> getLessons(@Filter Specification<Lesson> spec, Pageable pageable) {
-        return ResponseEntity.ok().body(this.lessonService.getAllLessons(spec, pageable));
+        return ResponseEntity.ok().body(this.lessonService.getAllLessonsPagination(spec, pageable));
     }
 
     // @GetMapping("/user")
@@ -71,7 +73,6 @@ public class LessonController {
     ResponseEntity<LessonResponse> getLesson(@PathVariable("id") String id) {
         return ResponseEntity.ok().body(this.lessonService.getDetailLesson(id));
     }
-
     @DeleteMapping("/{id}")
     @ApiMessage("Delete a lesson success")
     ResponseEntity<ApiString> delete(@PathVariable String id) {
@@ -86,4 +87,5 @@ public class LessonController {
     ResponseEntity<LessonResponse> updateLesson(@PathVariable String id, @RequestBody LessonUpdateRequest request) {
         return ResponseEntity.ok().body(this.lessonService.update(id, request));
     }
+
 }
