@@ -48,21 +48,6 @@ public class LessonService {
         lesson = lessonRepository.save(lesson);
         return lessonMapper.toLessonResponse(lesson);
     }
-
-    public ApiPagination<LessonResponse> getAllLessons(Specification<Lesson> spec, Pageable pageable) {
-        log.info("Get all lessons");
-        Page<Lesson> page = lessonRepository.findAll(spec, pageable);
-        List<LessonResponse> list = page.getContent().stream().map(lessonMapper::toLessonResponse).toList();
-
-        ApiPagination.Meta mt = new ApiPagination.Meta();
-        mt.setCurrent(pageable.getPageNumber() + 1);
-        mt.setPageSize(pageable.getPageSize());
-        mt.setPages(page.getTotalPages());
-        mt.setTotal(page.getTotalElements());
-
-        return ApiPagination.<LessonResponse>builder().meta(mt).result(list).build();
-    }
-
     public LessonResponse getDetailLesson(String id) {
         log.info("Get detail lesson");
         Lesson lesson = lessonRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));

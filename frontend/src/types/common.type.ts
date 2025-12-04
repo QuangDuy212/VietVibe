@@ -36,24 +36,24 @@ export interface IUser {
 }
 
 export interface IAnswer {
-  _id?: string;
-  content: string;
-  isCorrect?: boolean;   
-  correct?: boolean; 
-  orderIndex?: number;
+    _id?: string;
+    content: string;
+    isCorrect?: boolean;
+    correct?: boolean;
+    orderIndex?: number;
 }
 
 
 export interface IQuestion {
-  _id?: string;
-  content: string;
-  imageUrl?: string;
-  audioUrl?: string;
-  answers: IAnswer[];
+    _id?: string;
+    content: string;
+    imageUrl?: string;
+    audioUrl?: string;
+    answers: IAnswer[];
 }
 
 export interface IGame {
-    _id: string;          
+    _id: string;
     name: string;
     description: string;
     type: "MULTIPLE_CHOICE" | "SENTENCE_ORDER" | "LISTENING_CHOICE";
@@ -73,15 +73,41 @@ export interface IPaginationRes<T> {
 }
 
 export interface ILesson {
-        _id: string;
-        lessontitle: string;
-        videourl: string;
-        description: string;
-
-        // Các trường Audit
-        createdAt: string;
-        updatedAt: string;
-        createdBy: string;
-        updatedBy: string;
-
+    _id: string;
+    lessontitle: string;
+    videourl: string;
+    description: string;
+    
+    // Các trường Audit
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
+    updatedBy: string;
+    vocabulary: IVocabulary[];
+    lessonDetail: ILessonDetail;
+}
+export interface IVocabulary {
+    _id: string;
+    word: string;
+    englishMeaning: string;
+    exampleSentence: string; // Corrected the typo to match the API response
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
+    updatedBy: string;
+}
+export interface ILessonDetail {
+    _id: string;
+    gramma: string;
+    vocab: string;
+    phonetic: string;
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
+    updatedBy: string;
+}
+export interface ICurrentLesson extends ILesson {
+    sections: { id: number; title: string; duration: string; completed: boolean }[];
+    simplifiedVocabulary: { word: string; meaning: string; example: string }[];
+    details: ILessonDetail | null;
 }
