@@ -1,79 +1,46 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import { Gamepad2, Trophy, Zap, Target, Brain, MessageSquare, Image as ImageIcon, Headphones } from "lucide-react";
 
+import { callGetGames } from "@/config/api";
+
 const Games = () => {
-  const games = [
-    {
-      id: 1,
-      title: "Flashcard Challenge",
-      description: "Match Vietnamese words with their English translations",
-      icon: Zap,
-      difficulty: "Easy",
-      points: 50,
-      color: "primary",
-      played: 12,
-      bestScore: 850
-    },
-    {
-      id: 2,
-      title: "Pronunciation Master",
-      description: "Listen and repeat Vietnamese words to improve your accent",
-      icon: Headphones,
-      difficulty: "Medium",
-      points: 75,
-      color: "secondary",
-      played: 8,
-      bestScore: 920
-    },
-    {
-      id: 3,
-      title: "Word Builder",
-      description: "Build sentences using Vietnamese words and grammar",
-      icon: Brain,
-      difficulty: "Hard",
-      points: 100,
-      color: "accent",
-      played: 5,
-      bestScore: 650
-    },
-    {
-      id: 4,
-      title: "Picture Match",
-      description: "Match images with the correct Vietnamese vocabulary",
-      icon: ImageIcon,
-      difficulty: "Easy",
-      points: 50,
-      color: "primary",
-      played: 15,
-      bestScore: 980
-    },
-    {
-      id: 5,
-      title: "Speed Quiz",
-      description: "Answer as many questions as you can in 60 seconds",
-      icon: Target,
-      difficulty: "Medium",
-      points: 75,
-      color: "secondary",
-      played: 10,
-      bestScore: 1200
-    },
-    {
-      id: 6,
-      title: "Conversation Practice",
-      description: "Practice real-life conversations in Vietnamese",
-      icon: MessageSquare,
-      difficulty: "Hard",
-      points: 100,
-      color: "accent",
-      played: 3,
-      bestScore: 450
-    },
-  ];
+  const [games, setGames] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    callGetGames()
+      .then((res) => {
+        // axios-customize interceptor returns `res.data` (the backend envelope),
+        // so `res` here is the backend envelope: { message, statusCode, data }
+        const envelope = res as any;
+        const pagination = envelope.data as any;
+        const list = pagination?.result || [];
+        const mapped = list.map((g: any) => ({
+          id: g._id,
+          title: g.name,
+          description: g.description,
+          icon: Gamepad2,
+          difficulty: g.type === "MULTIPLE_CHOICE" ? "Easy" : g.type === "LISTENING_CHOICE" ? "Medium" : "Hard",
+          points: (g.questions?.length || 0) * 10,
+          color: "primary",
+          played: 0,
+          bestScore: 0,
+        }));
+        setGames(mapped);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err?.message || "Lỗi khi tải games");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
