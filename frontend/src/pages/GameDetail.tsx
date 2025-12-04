@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { ArrowLeft, Trophy, CheckCircle2, XCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { callGetGameDetail } from "@/config/api";
 
 const GameDetail = () => {
   const { id } = useParams();
@@ -21,72 +20,46 @@ const GameDetail = () => {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [answers, setAnswers] = useState<boolean[]>([]);
-  const [game, setGame] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    callGetGameDetail(id)
-      .then((res) => {
-        // axios-customize interceptor returns `res.data` (the backend envelope),
-        // so `res` here is the backend envelope: { message, statusCode, data }
-        const envelope = res as any;
-        const g = envelope.data as any;
-        if (!g) {
-          setError("Không tìm thấy game");
-          return;
-        }
-        // Map backend questions to UI shape
-        const mappedQuestions = (g.questions || []).map((q: any, idx: number) => ({
-          id: q._id || idx,
-          question: q.content,
-          options: (q.answers || []).map((a: any) => a.content || a),
-          correctAnswer: (q.answers || []).findIndex((a: any) => a.isCorrect || a.correct === true),
-        }));
-
-        setGame({
-          id: g._id,
-          title: g.name,
-          description: g.description,
-          totalQuestions: mappedQuestions.length,
-          questions: mappedQuestions,
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-        setError(err?.message || "Lỗi khi tải chi tiết game");
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container px-4 py-8">Đang tải...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container px-4 py-8">{error}</div>
-      </div>
-    );
-  }
-
-  if (!game) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container px-4 py-8">Không có dữ liệu.</div>
-      </div>
-    );
-  }
+  // Mock data - thay bằng data thật từ API
+  const game = {
+    id: id,
+    title: "Flashcard Challenge",
+    description: "Match Vietnamese words with their English translations",
+    totalQuestions: 5,
+    questions: [
+      {
+        id: 1,
+        question: "What does 'Xin chào' mean in English?",
+        options: ["Goodbye", "Hello", "Thank you", "Please"],
+        correctAnswer: 1,
+      },
+      {
+        id: 2,
+        question: "How do you say 'Thank you' in Vietnamese?",
+        options: ["Xin lỗi", "Tạm biệt", "Cảm ơn", "Xin chào"],
+        correctAnswer: 2,
+      },
+      {
+        id: 3,
+        question: "What is the meaning of 'Tôi'?",
+        options: ["You", "I/Me", "We", "They"],
+        correctAnswer: 1,
+      },
+      {
+        id: 4,
+        question: "Translate 'Goodbye' to Vietnamese:",
+        options: ["Chào", "Tạm biệt", "Cảm ơn", "Xin lỗi"],
+        correctAnswer: 1,
+      },
+      {
+        id: 5,
+        question: "What does 'Bạn' mean?",
+        options: ["Me", "He/She", "You/Friend", "They"],
+        correctAnswer: 2,
+      },
+    ],
+  };
 
   const currentQ = game.questions[currentQuestion];
   const progress = ((currentQuestion + 1) / game.totalQuestions) * 100;

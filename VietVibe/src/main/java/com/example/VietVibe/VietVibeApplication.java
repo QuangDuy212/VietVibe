@@ -9,4 +9,5 @@ public class VietVibeApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(VietVibeApplication.class, args);
 	}
+
 }
