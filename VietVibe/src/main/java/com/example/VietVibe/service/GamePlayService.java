@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import com.example.VietVibe.dto.request.QuestionSubmitRequest;
+import com.example.VietVibe.dto.request.GameSubmitRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.PlayGameResponse;
 import com.example.VietVibe.dto.response.QuestionResultResponse;
@@ -57,29 +57,29 @@ public class GamePlayService {
         return gameMapper.toPlayGameResponse(game);
     }
 
-    public QuestionResultResponse submitQuestion(Long gameId, QuestionSubmitRequest request) {
+    public QuestionResultResponse submitQuestion(Long gameId, GameSubmitRequest request) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_EXISTED));
 
         Question question = game.getQuestions().stream()
-        .filter(q -> q.getId().equals(request.getAnswers().getQuestionId()))
-        .findFirst()
-        .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_EXISTED));
+                .filter(q -> q.getId().equals(request.getAnswers().getQuestionId()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_EXISTED));
 
         boolean isCorrect = false;
         Long correctAnswerId = null;
         List<Long> correctOrder = null;
-        if(game.getType() == GameType.MULTIPLE_CHOICE || game.getType() == GameType.LISTENING_CHOICE){
-            
+        if (game.getType() == GameType.MULTIPLE_CHOICE || game.getType() == GameType.LISTENING_CHOICE) {
+
             Long selectedAnswerId = request.getAnswers().getAnswerId();
-            // Tìm đáp án đúng trong db 
+            // Tìm đáp án đúng trong db
             correctAnswerId = question.getAnswers().stream()
                     .filter(ans -> ans.isCorrect())
                     .findFirst()
                     .map(ans -> ans.getId())
                     .orElse(null);
             isCorrect = selectedAnswerId != null && selectedAnswerId.equals(correctAnswerId);
-        }else if(game.getType() == GameType.SENTENCE_ORDER){
+        } else if (game.getType() == GameType.SENTENCE_ORDER) {
             List<Long> userOder = request.getAnswers().getOrderedAnswerIds();
             if (userOder == null || userOder.isEmpty()) {
                 throw new AppException(ErrorCode.QUESTION_NOT_EXISTED);
