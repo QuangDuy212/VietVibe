@@ -1,15 +1,13 @@
-import { IAccount, IBackendRes, IGetAccount, IUser } from '@/types/common.type';
-import { IGame, IQuestion, IPaginationRes } from '@/types/common.type';
+import { IAccount, IBackendRes, IGetAccount, IPointSearchRequest, IPointUpdateRequest, IUser } from '@/types/common.type';
 import axios from './axios-customize';
-
+import { PointResponse, IPaginationRes } from '@/types/common.type';
 
 //MODULE AUTH
-
 export const callFetchAccount = () => {
     return axios.get<IBackendRes<IGetAccount>>('/api/v1/auth/account')
 }
 
-export const callRegister = (data: {username: string , name?: string, password: string, address?: string,role?: string }) => {
+export const callRegister = (data: { username: string, name?: string, password: string, address?: string, role?: string }) => {
     return axios.post<IBackendRes<IUser>>('/api/v1/auth/register', data)
 }
 
@@ -25,6 +23,28 @@ export const callLogout = () => {
     return axios.post<IBackendRes<string>>('/api/v1/auth/logout')
 }
 
+// MODULE  USER
+export const callGetAllUsers = (page = 0, size = 10, sort?: string) => {
+    const oneIndexedPage = Math.max(1, page + 1);
+    return axios.get<unknown>('/api/v1/users', { params: { page: oneIndexedPage, size, sort } });
+};
+
+export const callCreateUser = (data: unknown) => {
+    return axios.post<IBackendRes<unknown>>('/api/v1/users', data);
+};
+
+export const callUpdateUser = (userId: string, data: unknown) => {
+    return axios.put<IBackendRes<unknown>>(`/api/v1/users/${userId}`, data);
+};
+
+export const callDeleteUser = (userId: string) => {
+    return axios.delete<IBackendRes<unknown>>(`/api/v1/users/${userId}`);
+};
+
+export const callSearchUsers = (data: unknown, page = 0, size = 10, sort?: string) => {
+    const oneIndexedPage = Math.max(1, page + 1);
+    return axios.post<unknown>('/api/v1/users/search', data, { params: { page: oneIndexedPage, size, sort } });
+}
 // MODULE GAME
 
 // Lấy list game (có phân trang)
@@ -65,3 +85,48 @@ export const callUpdateGame = (
 export const callDeleteGame = (id: string) => {
   return axios.delete<IBackendRes<string>>(`/api/v1/games/${id}`);
 };
+//MODULE LESSONS
+const PREFIX_API = "api/v1/lessons";
+
+export const callFetchLessons = () => {
+    return axios.get<IBackendRes<ILesson[]>>(`/${PREFIX_API}/all`);
+}
+
+export const callCreateLesson = (lesson: {
+    lessontitle: string;
+    videourl: string;
+    description: string;
+}) => {
+    return axios.post<IBackendRes<ILesson>>(`/${PREFIX_API}`, lesson);
+}
+
+export const callUpdateLesson = (id: string, lesson: {
+    lessontitle: string;
+    videourl: string;
+    description: string;
+}) => {
+    return axios.put<IBackendRes<ILesson>>(`/${PREFIX_API}/${id}`, lesson);
+}
+
+export const callDeleteLesson = (id: string) => {
+    return axios.delete<IBackendRes<unknown>>(`/${PREFIX_API}/${id}`);
+}
+//MODULE CRUD POINT 
+export const callGetAllPoints = (page = 0, size = 10, sort?: string) => {
+    const oneIndexedPage = Math.max(1, page + 1);
+    return axios.get<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points', { params: { page: oneIndexedPage, size, sort } });
+};
+
+export const callUpdatePoint = (pointId: number, data: IPointUpdateRequest) => {
+    return axios.put<IBackendRes<PointResponse>>(`/api/v1/points/${pointId}`, data);
+};
+
+export const callDeletePoint = (pointId: number) => {
+    return axios.delete<IBackendRes<null>>(`/api/v1/points/${pointId}`);
+};
+
+export const callSearchPoints = (data: IPointSearchRequest, page = 0, size = 10, sort?: string) => {
+    const oneIndexedPage = Math.max(1, page + 1);
+    return axios.post<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
+};
+

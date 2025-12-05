@@ -52,7 +52,7 @@ public class LessonController {
     ResponseEntity<ApiPagination<LessonResponse>> getLessons(@Filter Specification<Lesson> spec, Pageable pageable) {
         return ResponseEntity.ok().body(this.lessonService.getAllLessons(spec, pageable));
     }
-
+    
     @GetMapping("/all")
     @ApiMessage("Get all lessons (no paging) success")
     ResponseEntity<List<LessonResponse>> getAllNoPaging() {

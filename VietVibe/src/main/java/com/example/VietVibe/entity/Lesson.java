@@ -45,6 +45,10 @@ public class Lesson {
     @JoinTable(name = "user_lesson", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "lesson_id"))
     List<User> users;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "game_id" )
+    Game game;
+
     @PrePersist
     public void handleBeforeCreate() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
