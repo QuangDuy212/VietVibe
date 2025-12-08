@@ -393,8 +393,6 @@
 
 // export default LessonsManagement;
 
-
-
 import { useEffect, useState } from "react";
 import {
   callFetchLessonsPaginated,
@@ -464,7 +462,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Eye,
-  Headphones,
   FileText,
 } from "lucide-react";
 
@@ -479,17 +476,25 @@ interface Vocabulary {
 
 const FAKE_VOCAB: Record<string, Vocabulary[]> = {
   "1": [
-    { id: "1", word: "Hello", meaning: "Xin chào", example: "Hello, nice to meet you!" },
+    {
+      id: "1",
+      word: "Hello",
+      meaning: "Xin chào",
+      example: "Hello, nice to meet you!",
+    },
     { id: "2", word: "Name", meaning: "Tên", example: "My name is Anna." },
   ],
 };
 
-const FAKE_GRAMMAR: Record<string, string> = {
-  "1": "Câu giới thiệu: My name is + [tên]\nI am + [tuổi] years old.",
-};
-
-const FAKE_PRONUNCIATION: Record<string, string> = {
-  "1": "hello /həˈloʊ/\nname /neɪm/\nLưu ý: Chú ý phát âm âm 'h' trong hello",
+const FAKE_CONTENT: Record<
+  string,
+  { grammar: string; vocab: string; phonetic: string }
+> = {
+  "1": {
+    grammar: "Câu giới thiệu: My name is + [tên]\nI am + [tuổi] years old.",
+    vocab: "- Hello: xin chào\n- Name: tên\n- Nice: vui, tốt",
+    phonetic: "hello /həˈloʊ/\nname /neɪm/",
+  },
 };
 
 const LessonsManagement = () => {
@@ -511,8 +516,11 @@ const LessonsManagement = () => {
 
   const [activeTab, setActiveTab] = useState("info");
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
-  const [grammarNote, setGrammarNote] = useState("");
-  const [pronunciationNote, setPronunciationNote] = useState("");
+
+  // Nội dung: grammar, vocab, phonetic
+  const [grammar, setGrammar] = useState("");
+  const [vocab, setVocab] = useState("");
+  const [phonetic, setPhonetic] = useState("");
 
   useEffect(() => {
     fetchLessons();
@@ -543,14 +551,23 @@ const LessonsManagement = () => {
         description: lesson.description || "",
       });
       setVocabularies(FAKE_VOCAB[lesson._id] || []);
-      setGrammarNote(FAKE_GRAMMAR[lesson._id] || "");
-      setPronunciationNote(FAKE_PRONUNCIATION[lesson._id] || "");
+
+      // Load content
+      const content = FAKE_CONTENT[lesson._id] || {
+        grammar: "",
+        vocab: "",
+        phonetic: "",
+      };
+      setGrammar(content.grammar);
+      setVocab(content.vocab);
+      setPhonetic(content.phonetic);
     } else {
       setEditingLesson(null);
       setFormData({ lessontitle: "", videourl: "", description: "" });
       setVocabularies([]);
-      setGrammarNote("");
-      setPronunciationNote("");
+      setGrammar("");
+      setVocab("");
+      setPhonetic("");
     }
     setActiveTab("info");
     setDialogOpen(true);
@@ -564,20 +581,43 @@ const LessonsManagement = () => {
   };
 
   const updateVocab = (id: string, field: keyof Vocabulary, value: string) => {
-    setVocabularies(vocabularies.map(v => v.id === id ? { ...v, [field]: value } : v));
+    setVocabularies(
+      vocabularies.map((v) => (v.id === id ? { ...v, [field]: value } : v))
+    );
   };
 
   const deleteVocab = (id: string) => {
-    setVocabularies(vocabularies.filter(v => v.id !== id));
+    setVocabularies(vocabularies.filter((v) => v.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.lessontitle.trim()) {
       toast.error("Vui lòng nhập tiêu đề bài học");
       return;
     }
-    toast.success(editingLesson ? "Lưu thay đổi thành công!" : "Tạo bài học thành công!");
-    setDialogOpen(false);
+
+    try {
+      const dataToSave = {
+        ...formData,
+        vocabularies,
+        grammar,
+        vocab,
+        phonetic,
+      };
+
+      if (editingLesson) {
+        await callUpdateLesson(editingLesson._id, dataToSave);
+        toast.success("Lưu thay đổi thành công!");
+      } else {
+        await callCreateLesson(dataToSave);
+        toast.success("Tạo bài học thành công!");
+      }
+
+      setDialogOpen(false);
+      fetchLessons();
+    } catch (error) {
+      toast.error("Có lỗi xảy ra!");
+    }
   };
 
   const handleDelete = async () => {
@@ -617,7 +657,10 @@ const LessonsManagement = () => {
               </CardTitle>
               <CardDescription>Manage your course content</CardDescription>
             </div>
-            <Button onClick={() => openDialog()} className="gap-2 bg-red-500 hover:bg-red-600">
+            <Button
+              onClick={() => openDialog()}
+              className="gap-2 bg-red-500 hover:bg-red-600"
+            >
               <Plus className="h-4 w-4" />
               Add Lesson
             </Button>
@@ -639,7 +682,9 @@ const LessonsManagement = () => {
               <TableBody>
                 {lessons.map((lesson) => (
                   <TableRow key={lesson._id} className="hover:bg-muted/30">
-                    <TableCell className="font-medium">{lesson.lessontitle}</TableCell>
+                    <TableCell className="font-medium">
+                      {lesson.lessontitle}
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">
                       {lesson.videourl || "—"}
                     </TableCell>
@@ -649,23 +694,38 @@ const LessonsManagement = () => {
                     <TableCell>
                       <div className="flex flex-col text-xs text-muted-foreground gap-1">
                         <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" /> {lesson.createdBy || "admin"}
+                          <User className="h-3 w-3" />{" "}
+                          {lesson.createdBy || "admin"}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {lesson.createdAt ? format(new Date(lesson.createdAt), "dd/MM/yyyy") : "N/A"}
+                          {lesson.createdAt
+                            ? format(new Date(lesson.createdAt), "dd/MM/yyyy")
+                            : "N/A"}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="outline" onClick={() => openDialog(lesson)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDialog(lesson)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => openDialog(lesson)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openDialog(lesson)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeleteId(lesson._id)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeleteId(lesson._id)}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -680,7 +740,10 @@ const LessonsManagement = () => {
           <div className="flex items-center justify-between mt-6">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Hiển thị</span>
-              <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(v) => setPageSize(Number(v))}
+              >
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -691,7 +754,9 @@ const LessonsManagement = () => {
                   <SelectItem value="50">50</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-sm text-muted-foreground">trên tổng {totalLessons}</span>
+              <span className="text-sm text-muted-foreground">
+                trên tổng {totalLessons}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -735,7 +800,7 @@ const LessonsManagement = () => {
         </CardContent>
       </Card>
 
-      {/* DIALOG VỚI 4 TABS */}
+      {/* DIALOG VỚI 3 TABS */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -743,34 +808,44 @@ const LessonsManagement = () => {
               {editingLesson ? "Chỉnh sửa bài học" : "Tạo bài học mới"}
             </DialogTitle>
             <DialogDescription>
-              {editingLesson ? "Xem và chỉnh sửa thông tin bài học" : "Nhập thông tin bài học"}
+              {editingLesson
+                ? "Xem và chỉnh sửa thông tin bài học"
+                : "Nhập thông tin bài học"}
             </DialogDescription>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-4 rounded-full bg-muted">
-              <TabsTrigger value="info" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
+            <TabsList className="grid w-full grid-cols-3 rounded-full bg-muted">
+              <TabsTrigger
+                value="info"
+                className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
+              >
                 Thông tin
               </TabsTrigger>
-              <TabsTrigger value="vocab" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
+              <TabsTrigger
+                value="vocabulary"
+                className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
+              >
                 Từ vựng ({vocabularies.length})
               </TabsTrigger>
-              <TabsTrigger value="grammar" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
-                Ngữ pháp
-              </TabsTrigger>
-              <TabsTrigger value="pronunciation" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
-                Ngữ âm
+              <TabsTrigger
+                value="content"
+                className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
+              >
+                Nội dung
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB THÔNG TIN */}
+            {/* TAB 1: THÔNG TIN */}
             <TabsContent value="info" className="space-y-6 pt-8">
               <div>
                 <Label className="text-base">Tiêu đề bài học *</Label>
                 <Input
                   className="mt-2 text-lg"
                   value={formData.lessontitle}
-                  onChange={(e) => setFormData({ ...formData, lessontitle: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lessontitle: e.target.value })
+                  }
                   placeholder="VD: Unit 1 - Greetings"
                 />
               </div>
@@ -779,7 +854,9 @@ const LessonsManagement = () => {
                 <Input
                   className="mt-2"
                   value={formData.videourl}
-                  onChange={(e) => setFormData({ ...formData, videourl: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, videourl: e.target.value })
+                  }
                   placeholder="https://www.youtube.com/watch?v=..."
                 />
               </div>
@@ -788,17 +865,22 @@ const LessonsManagement = () => {
                 <Textarea
                   className="mt-2 min-h-32"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Học cách chào hỏi và giới thiệu bản thân"
                 />
               </div>
             </TabsContent>
 
-            {/* TAB TỪ VỰNG */}
-            <TabsContent value="vocab" className="pt-6">
+            {/* TAB 2: TỪ VỰNG */}
+            <TabsContent value="vocabulary" className="pt-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold">Danh sách từ vựng</h3>
-                <Button onClick={addVocabulary} className="bg-red-500 hover:bg-red-600 text-white">
+                <Button
+                  onClick={addVocabulary}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
                   <Plus className="h-5 w-5 mr-2" />
                   Thêm từ mới
                 </Button>
@@ -814,18 +896,24 @@ const LessonsManagement = () => {
                     <div key={v.id} className="flex items-center gap-3">
                       <Input
                         value={v.word}
-                        onChange={(e) => updateVocab(v.id, "word", e.target.value)}
+                        onChange={(e) =>
+                          updateVocab(v.id, "word", e.target.value)
+                        }
                         placeholder="Từ"
                         className="font-medium"
                       />
                       <Input
                         value={v.meaning}
-                        onChange={(e) => updateVocab(v.id, "meaning", e.target.value)}
+                        onChange={(e) =>
+                          updateVocab(v.id, "meaning", e.target.value)
+                        }
                         placeholder="Nghĩa"
                       />
                       <Input
                         value={v.example}
-                        onChange={(e) => updateVocab(v.id, "example", e.target.value)}
+                        onChange={(e) =>
+                          updateVocab(v.id, "example", e.target.value)
+                        }
                         placeholder="Ví dụ"
                       />
                       <Button
@@ -841,52 +929,79 @@ const LessonsManagement = () => {
               </div>
             </TabsContent>
 
-            {/* TAB NGỮ PHÁP */}
-            <TabsContent value="grammar" className="pt-6">
-              <Label className="text-lg font-medium mb-4 block">
-                Ghi chú ngữ pháp
-              </Label>
-              <Textarea
-                value={grammarNote}
-                onChange={(e) => setGrammarNote(e.target.value)}
-                placeholder="Viết ghi chú ngữ pháp ở đây... 
+            {/* TAB 3: NỘI DUNG (Grammar, Vocab, Phonetic) */}
+            <TabsContent value="content" className="space-y-6 pt-6">
+              <div>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Ngữ pháp (Grammar)
+                </Label>
+                <Textarea
+                  value={grammar}
+                  onChange={(e) => setGrammar(e.target.value)}
+                  placeholder="Viết ghi chú ngữ pháp...
 
 Ví dụ:
 - Câu giới thiệu: My name is + [tên]
 - Câu hỏi: What is your name?
 - Cấu trúc: I am + [tuổi] years old"
-                className="min-h-64 text-base leading-relaxed"
-              />
-            </TabsContent>
+                  className="mt-2 min-h-48 text-base leading-relaxed"
+                />
+              </div>
 
-            {/* TAB NGỮ ÂM */}
-            <TabsContent value="pronunciation" className="pt-6">
-              <Label className="text-lg font-medium mb-4 block">
-                Ghi chú ngữ âm & phát âm
-              </Label>
-              <Textarea
-                value={pronunciationNote}
-                onChange={(e) => setPronunciationNote(e.target.value)}
-                placeholder="Viết ghi chú ngữ âm ở đây... 
+              <div>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Từ vựng (Vocab)
+                </Label>
+                <Textarea
+                  value={vocab}
+                  onChange={(e) => setVocab(e.target.value)}
+                  placeholder="Viết nội dung từ vựng...
+
+Ví dụ:
+- Hello: xin chào
+- Name: tên
+- Nice: vui, tốt
+- Meet: gặp"
+                  className="mt-2 min-h-48 text-base leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  🔊 Phát âm (Phonetic)
+                </Label>
+                <Textarea
+                  value={phonetic}
+                  onChange={(e) => setPhonetic(e.target.value)}
+                  placeholder="Viết ghi chú phát âm...
 
 Ví dụ:
 - hello /həˈloʊ/
 - name /neɪm/
 - thank you /θæŋk juː/
 
-Lưu ý: 
-- Chú ý phát âm âm 'h' trong hello
-- Âm 'th' trong thank phát âm đặc biệt"
-                className="min-h-64 text-base leading-relaxed"
-              />
+Lưu ý: Chú ý phát âm âm 'th' trong thank"
+                  className="mt-2 min-h-48 text-base leading-relaxed"
+                />
+              </div>
             </TabsContent>
           </Tabs>
 
           <DialogFooter className="mt-10">
-            <Button variant="outline" size="lg" onClick={() => setDialogOpen(false)}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setDialogOpen(false)}
+            >
               Hủy
             </Button>
-            <Button size="lg" className="bg-red-500 hover:bg-red-600 text-white" onClick={handleSave}>
+            <Button
+              size="lg"
+              className="bg-red-500 hover:bg-red-600 text-white"
+              onClick={handleSave}
+            >
               {editingLesson ? "Lưu thay đổi" : "Tạo bài học"}
             </Button>
           </DialogFooter>
@@ -899,12 +1014,16 @@ Lưu ý:
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa bài học này? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa bài học này? Hành động này không thể
+              hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Xóa
             </AlertDialogAction>
           </AlertDialogFooter>
