@@ -530,8 +530,9 @@ const LessonsManagement = () => {
     try {
       setLoading(true);
       const res = await callFetchLessonsPaginated(page, pageSize);
-      if (res?.data?.data) {
-        const data = res.data.data as IPaginationRes<ILesson>;
+      console.log(">>> check res fetch lessons: ", res);
+      if (res?.data) {
+        const data = res.data as unknown;
         setLessons(data.result || []);
         setTotalLessons(data.meta?.total || 0);
       }
