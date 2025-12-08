@@ -72,39 +72,70 @@ export interface IPaginationRes<T> {
     result: T[];
 }
 
-export interface ILesson {
-    _id: string;
-    lessontitle: string;
-    videourl: string;
-    description: string;
+// export interface ILesson {
+//     _id: string;
+//     lessontitle: string;
+//     videourl: string;
+//     description: string;
     
-    // Các trường Audit
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    updatedBy: string;
-    vocabulary: IVocabulary[];
-    lessonDetail: ILessonDetail;
-}
+//     // Các trường Audit
+//     createdAt: string;
+//     updatedAt: string;
+//     createdBy: string;
+//     updatedBy: string;
+//     vocabulary: IVocabulary[];
+//     lessonDetail: ILessonDetail;
+// }
+// export interface IVocabulary {
+//   _id: string;
+//   word: string;
+//   englishMeaning: string;
+//   exampleSentence: string;
+//   lessonId?: string | ILesson | null;
+//   createdAt: string;
+//   updatedAt: string;
+//   createdBy: string;
+//   updatedBy: string;
+// }
+
+// export interface ILessonDetail {
+//     _id: string;
+//     gramma: string;
+//     vocab: string;
+//     phonetic: string;
+//     createdAt: string;
+//     updatedAt: string;
+//     createdBy: string;
+//     updatedBy: string;
+// }
+
 export interface IVocabulary {
-    _id: string;
-    word: string;
-    englishMeaning: string;
-    exampleSentence: string; // Corrected the typo to match the API response
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    updatedBy: string;
+  _id: string;
+  word: string;
+  englishMeaning: string;
+  exampleSentence: string;
+  lessonId?: string;
+  createdAt?: string;
 }
+
 export interface ILessonDetail {
-    _id: string;
-    gramma: string;
-    vocab: string;
-    phonetic: string;
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    updatedBy: string;
+  _id: string;
+  gramma: string;
+  vocab: string;
+  phonetic: string;
+  lessonId?: string;
+}
+
+// Cập nhật ILesson để populate đúng
+export interface ILesson {
+  _id: string;
+  lessontitle: string;
+  videourl: string;
+  description: string;
+  vocabulary?: IVocabulary[];
+  lessonDetail?: ILessonDetail | null;
+  createdAt?: string;
+  createdBy?: string;
 }
 export interface ICurrentLesson extends ILesson {
     sections: { id: number; title: string; duration: string; completed: boolean }[];

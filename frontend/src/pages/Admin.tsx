@@ -14,6 +14,7 @@ import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, Responsive
 import PointsManagement from "@/components/admin/PointsManagement";
 import { useAppSelector } from "@/redux/hook";
 
+
 const Admin = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -91,6 +92,8 @@ const Admin = () => {
         return <GamesManagement />;
       case "points":
         return <PointsManagement />;
+      //   case "vocabulary":
+      // return <VocabularyManagement />;
       default:
         return <UsersManagement />;
     }

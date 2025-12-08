@@ -125,6 +125,51 @@ export const callFetchVocbulary = (lessonId: string) => {
 export const callFetchLessonDetail = (lessonId: string) => {
   return axios.get<IBackendRes<ILessonDetail[]>>(`/api/v1/lesson-details/lesson/${lessonId}`);
 }
+
+
+// // MODULE VOCABULARY
+
+// export const callGetAllVocabulary = () => {
+//   return axios.get<IBackendRes<IVocabulary[]>>("/api/v1/vocabularies/all");
+// };
+
+// export const callGetVocabularyByLesson = (lessonId: string) => {
+//   return axios.get<IBackendRes<IVocabulary[]>>(
+//     `/api/v1/vocabularies/lesson/${lessonId}`
+//   );
+// };
+
+// export const callCreateVocabulary = (data: {
+//   word: string;
+//   englishMeaning: string;
+//   exampleSentence: string;
+//   lessonId: string;
+// }) => {
+//   return axios.post<IBackendRes<IVocabulary>>("/api/v1/vocabularies", data);
+// };
+
+// export const callUpdateVocabulary = (
+//   id: string,
+//   data: {
+//     word?: string;
+//     englishMeaning?: string;
+//     exampleSentence?: string;
+//     lessonId?: string;
+//   }
+// ) => {
+//   return axios.put<IBackendRes<IVocabulary>>(
+//     `/api/v1/vocabularies/${id}`,
+//     data
+//   );
+// };
+
+// export const callDeleteVocabulary = (id: string) => {
+//   return axios.delete<IBackendRes<string>>(
+//     `/api/v1/vocabularies/${id}`
+//   );
+// };
+
+
 //MODULE CRUD POINT 
 export const callGetAllPoints = (page = 0, size = 10, sort?: string) => {
     const oneIndexedPage = Math.max(1, page + 1);
