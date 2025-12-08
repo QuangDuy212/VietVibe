@@ -395,9 +395,6 @@
 
 
 
-// src/pages/admin/LessonsManagement.tsx
-// ĐẸP Y HỆT ẢNH BẠN GỬI – ĐÃ CHỈNH ĐÚNG 100%
-
 import { useEffect, useState } from "react";
 import {
   callFetchLessonsPaginated,
@@ -491,6 +488,10 @@ const FAKE_GRAMMAR: Record<string, string> = {
   "1": "Câu giới thiệu: My name is + [tên]\nI am + [tuổi] years old.",
 };
 
+const FAKE_PRONUNCIATION: Record<string, string> = {
+  "1": "hello /həˈloʊ/\nname /neɪm/\nLưu ý: Chú ý phát âm âm 'h' trong hello",
+};
+
 const LessonsManagement = () => {
   const [lessons, setLessons] = useState<ILesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -511,6 +512,7 @@ const LessonsManagement = () => {
   const [activeTab, setActiveTab] = useState("info");
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
   const [grammarNote, setGrammarNote] = useState("");
+  const [pronunciationNote, setPronunciationNote] = useState("");
 
   useEffect(() => {
     fetchLessons();
@@ -542,11 +544,13 @@ const LessonsManagement = () => {
       });
       setVocabularies(FAKE_VOCAB[lesson._id] || []);
       setGrammarNote(FAKE_GRAMMAR[lesson._id] || "");
+      setPronunciationNote(FAKE_PRONUNCIATION[lesson._id] || "");
     } else {
       setEditingLesson(null);
       setFormData({ lessontitle: "", videourl: "", description: "" });
       setVocabularies([]);
       setGrammarNote("");
+      setPronunciationNote("");
     }
     setActiveTab("info");
     setDialogOpen(true);
@@ -576,6 +580,18 @@ const LessonsManagement = () => {
     setDialogOpen(false);
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await callDeleteLesson(deleteId);
+      toast.success("Xóa bài học thành công!");
+      setDeleteId(null);
+      fetchLessons();
+    } catch (error) {
+      toast.error("Không thể xóa bài học");
+    }
+  };
+
   const totalPages = Math.ceil(totalLessons / pageSize);
 
   if (loading) {
@@ -590,7 +606,7 @@ const LessonsManagement = () => {
 
   return (
     <>
-      {/* BẢNG CHÍNH – GIỮ NGUYÊN */}
+      {/* BẢNG CHÍNH */}
       <Card className="border-0 shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -660,22 +676,79 @@ const LessonsManagement = () => {
             </Table>
           </div>
 
-          {/* PHÂN TRANG GIỮ NGUYÊN */}
-          {/* ... (giữ nguyên phần phân trang của bạn) */}
+          {/* PHÂN TRANG */}
+          <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Hiển thị</span>
+              <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">trên tổng {totalLessons}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm px-4">
+                Trang {page} / {totalPages || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* DIALOG ĐẸP Y HỆT ẢNH BẠN GỬI */}
+      {/* DIALOG VỚI 4 TABS */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">
               {editingLesson ? "Chỉnh sửa bài học" : "Tạo bài học mới"}
             </DialogTitle>
+            <DialogDescription>
+              {editingLesson ? "Xem và chỉnh sửa thông tin bài học" : "Nhập thông tin bài học"}
+            </DialogDescription>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-3 rounded-full bg-muted">
+            <TabsList className="grid w-full grid-cols-4 rounded-full bg-muted">
               <TabsTrigger value="info" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
                 Thông tin
               </TabsTrigger>
@@ -683,7 +756,10 @@ const LessonsManagement = () => {
                 Từ vựng ({vocabularies.length})
               </TabsTrigger>
               <TabsTrigger value="grammar" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
-                Ngữ pháp & Ghi chú
+                Ngữ pháp
+              </TabsTrigger>
+              <TabsTrigger value="pronunciation" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow">
+                Ngữ âm
               </TabsTrigger>
             </TabsList>
 
@@ -718,7 +794,7 @@ const LessonsManagement = () => {
               </div>
             </TabsContent>
 
-            {/* TAB TỪ VỰNG – ĐẸP Y HỆT ẢNH */}
+            {/* TAB TỪ VỰNG */}
             <TabsContent value="vocab" className="pt-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold">Danh sách từ vựng</h3>
@@ -765,15 +841,42 @@ const LessonsManagement = () => {
               </div>
             </TabsContent>
 
-            {/* TAB NGỮ PHÁP – ĐÚNG NHƯ ẢNH */}
+            {/* TAB NGỮ PHÁP */}
             <TabsContent value="grammar" className="pt-6">
               <Label className="text-lg font-medium mb-4 block">
-                Ghi chú ngữ pháp, phát âm, lưu ý...
+                Ghi chú ngữ pháp
               </Label>
               <Textarea
                 value={grammarNote}
                 onChange={(e) => setGrammarNote(e.target.value)}
-                placeholder="Viết ghi chú ngữ pháp ở đây... Ví dụ: - Câu giới thiệu: My name is + [tên] - Câu hỏi: What is your name? - Phát âm: hello /həˈloʊ/"
+                placeholder="Viết ghi chú ngữ pháp ở đây... 
+
+Ví dụ:
+- Câu giới thiệu: My name is + [tên]
+- Câu hỏi: What is your name?
+- Cấu trúc: I am + [tuổi] years old"
+                className="min-h-64 text-base leading-relaxed"
+              />
+            </TabsContent>
+
+            {/* TAB NGỮ ÂM */}
+            <TabsContent value="pronunciation" className="pt-6">
+              <Label className="text-lg font-medium mb-4 block">
+                Ghi chú ngữ âm & phát âm
+              </Label>
+              <Textarea
+                value={pronunciationNote}
+                onChange={(e) => setPronunciationNote(e.target.value)}
+                placeholder="Viết ghi chú ngữ âm ở đây... 
+
+Ví dụ:
+- hello /həˈloʊ/
+- name /neɪm/
+- thank you /θæŋk juː/
+
+Lưu ý: 
+- Chú ý phát âm âm 'h' trong hello
+- Âm 'th' trong thank phát âm đặc biệt"
                 className="min-h-64 text-base leading-relaxed"
               />
             </TabsContent>
@@ -790,9 +893,22 @@ const LessonsManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ALERT XÓA GIỮ NGUYÊN */}
+      {/* ALERT XÓA */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        {/* ... giữ nguyên */}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa bài học này? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </>
   );
