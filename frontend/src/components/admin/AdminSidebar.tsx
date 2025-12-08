@@ -37,7 +37,7 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
   ];
 
   return (
-    <Sidebar className={collapsed ? "w-20" : "w-72"} collapsible="icon">
+    <Sidebar className={collapsed ? "w-20" : "w-[250px]"} collapsible="icon">
       <SidebarContent className="bg-gradient-to-b from-background via-muted/30 to-primary/5">
         {/* Dashboard Header */}
         {!collapsed && (
