@@ -112,7 +112,7 @@ const LessonsList = () => {
                 return (
                   <LessonCard
                     key={lesson._id}
-                    id={parseInt(lesson._id.slice(-4), 16)} // Convert _id to number
+                    id={lesson._id}
                     title={lesson.lessontitle}
                     description={lesson.description}
                     level={level}
