@@ -31,6 +31,9 @@ public class Game {
     String description;
 
     int totalQuestion;
+    int timesPlayed;
+    int bestScore = 0;
+
 
     @Enumerated(EnumType.STRING)
     GameType type; // 
@@ -41,4 +44,13 @@ public class Game {
 
     @OneToOne(mappedBy = "game")
     Lesson lesson;
+
+    @OneToMany(
+        mappedBy = "game",
+        cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH, CascadeType.DETACH},
+        fetch = FetchType.LAZY
+    )
+    @JsonManagedReference
+    List<Point> points = new ArrayList<>();
+
 }

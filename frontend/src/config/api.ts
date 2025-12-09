@@ -49,41 +49,41 @@ export const callSearchUsers = (data: unknown, page = 0, size = 10, sort?: strin
 
 // Lấy list game (có phân trang)
 export const callGetGames = (page = 1, size = 20) => {
-  return axios.get<IBackendRes<IPaginationRes<IGame>>>('/api/v1/games', {
-    params: { page, size },
-  });
+    return axios.get<IBackendRes<IPaginationRes<IGame>>>('/api/v1/games', {
+        params: { page, size },
+    });
 };
 
 // Lấy chi tiết 1 game theo id
 export const callGetGameDetail = (id: string) => {
-  return axios.get<IBackendRes<IGame>>(`/api/v1/games/${id}`);
+    return axios.get<IBackendRes<IGame>>(`/api/v1/games/${id}`);
 };
 
 // Tạo game mới
 export const callCreateGame = (data: {
-  name: string;
-  description: string;
-  type: IGame["type"];
-  questions?: IQuestion[];
-}) => {
-  return axios.post<IBackendRes<IGame>>("/api/v1/games/create", data);
-};
-
-export const callUpdateGame = (
-  id: string,
-  data: {
     name: string;
     description: string;
     type: IGame["type"];
     questions?: IQuestion[];
-  }
+}) => {
+    return axios.post<IBackendRes<IGame>>("/api/v1/games/create", data);
+};
+
+export const callUpdateGame = (
+    id: string,
+    data: {
+        name: string;
+        description: string;
+        type: IGame["type"];
+        questions?: IQuestion[];
+    }
 ) => {
-  return axios.put<IBackendRes<IGame>>(`/api/v1/games/${id}`, data);
+    return axios.put<IBackendRes<IGame>>(`/api/v1/games/${id}`, data);
 };
 
 // Xóa game
 export const callDeleteGame = (id: string) => {
-  return axios.delete<IBackendRes<string>>(`/api/v1/games/${id}`);
+    return axios.delete<IBackendRes<string>>(`/api/v1/games/${id}`);
 };
 //MODULE LESSONS
 const PREFIX_API = "api/v1/lessons";
@@ -128,5 +128,26 @@ export const callDeletePoint = (pointId: number) => {
 export const callSearchPoints = (data: IPointSearchRequest, page = 0, size = 10, sort?: string) => {
     const oneIndexedPage = Math.max(1, page + 1);
     return axios.post<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
+};
+
+// Mới: Start play to increment timesPlayed
+export const callStartPlayGame = (id: string) => {
+    return axios.post<IBackendRes<void>>(`/api/v1/games/${id}/play`);
+};
+
+// Mới: Create point khi chơi xong
+export const callCreatePoint = (data: {
+    userId: string;
+    gameId: number;
+    score: number;
+    correctAnswers: number;
+    totalQuestions: number;
+}) => {
+    return axios.post<IBackendRes<PointResponse>>('/api/v1/points/add', data);
+};
+
+// Mới: Get user stats
+export const callGetUserStats = (userId: string) => {
+    return axios.get<IBackendRes<UserStatsResponse>>(`/api/v1/points/user/${userId}/stats`);
 };
 

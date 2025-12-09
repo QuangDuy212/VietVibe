@@ -75,3 +75,9 @@ export interface IPaginationRes<T> {
     meta: IPaginationMeta;
     result: T[];
 }
+
+export interface UserStatsResponse {
+    totalPoints: number;
+    gamesPlayed: number;
+    highestScore: number;
+}

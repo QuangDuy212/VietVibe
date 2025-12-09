@@ -6,6 +6,7 @@ import com.example.VietVibe.dto.request.PointUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.GameStatsResponse;
 import com.example.VietVibe.dto.response.PointResponse;
+import com.example.VietVibe.dto.response.UserStatsResponse;
 import com.example.VietVibe.entity.Point;
 import com.example.VietVibe.entity.User;
 import com.example.VietVibe.exception.AppException;
@@ -45,30 +46,30 @@ public class PointService {
         private PointMapper pointMapper;
 
         // Chấm điểm và lưu điểm
-        public PointResponse addPoint(PointRequest request) {
-                User user = userRepository.findById(request.getUserId())
-                                .orElseThrow(() -> new RuntimeException("User not found"));
-                Game game = gameRepository.findById(request.getGameId())
-                                .orElseThrow(() -> new RuntimeException("Game not found"));
+        // public PointResponse addPoint(PointRequest request) {
+        //         User user = userRepository.findById(request.getUserId())
+        //                         .orElseThrow(() -> new RuntimeException("User not found"));
+        //         Game game = gameRepository.findById(request.getGameId())
+        //                         .orElseThrow(() -> new RuntimeException("Game not found"));
 
-                // Tính bonus tự động
-                int bonus = 0;
-                if (request.getCorrectAnswers() == request.getTotalQuestions()) {
-                        bonus = 5;
-                }
+        //         // Tính bonus tự động
+        //         int bonus = 0;
+        //         if (request.getCorrectAnswers() == request.getTotalQuestions()) {
+        //                 bonus = 5;
+        //         }
 
-                Point point = Point.builder()
-                                .score(request.getScore())
-                                .bonus(bonus)
-                                .game(game)
-                                .correctAnswers(request.getCorrectAnswers())
-                                .totalQuestions(request.getTotalQuestions())
-                                .createdAt(LocalDateTime.now())
-                                .user(user)
-                                .build();
-                point = pointRepository.save(point);
-                return pointMapper.toResponse(point);
-        }
+        //         Point point = Point.builder()
+        //                         .score(request.getScore())
+        //                         .bonus(bonus)
+        //                         .game(game)
+        //                         .correctAnswers(request.getCorrectAnswers())
+        //                         .totalQuestions(request.getTotalQuestions())
+        //                         .createdAt(LocalDateTime.now())
+        //                         .user(user)
+        //                         .build();
+        //         point = pointRepository.save(point);
+        //         return pointMapper.toResponse(point);
+        // }
 
         // lay toàn bộ điểm
         public List<PointResponse> getAllPoints() {
@@ -370,6 +371,49 @@ public class PointService {
 
                         return predicate;
                 };
+        }
+
+
+        // Cập nhật addPoint với bonus logic
+        public PointResponse addPoint(PointRequest request) {
+                User user = userRepository.findById(request.getUserId())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+                Game game = gameRepository.findById(request.getGameId())
+                                .orElseThrow(() -> new RuntimeException("Game not found"));
+                int bonus = (request.getCorrectAnswers() == request.getTotalQuestions()) ? 5 : 0;
+                Point point = Point.builder()
+                                .score(request.getScore())
+                                .bonus(bonus)
+                                .game(game)
+                                .correctAnswers(request.getCorrectAnswers())
+                                .totalQuestions(request.getTotalQuestions())
+                                .createdAt(LocalDateTime.now())
+                                .user(user)
+                                .build();
+                point = pointRepository.save(point);
+
+                // Cập nhật bestScore cho game
+                int newScore = point.getScore() + bonus;
+                if (newScore > game.getBestScore()) {
+                        game.setBestScore(newScore);
+                        gameRepository.save(game);
+                }
+                return pointMapper.toResponse(point);
+        }
+
+        // Mới: Get user stats
+        public UserStatsResponse getUserStats(String userId) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                List<Point> points = pointRepository.findByUser(user);
+                int totalPoints = points.stream().mapToInt(p -> p.getScore() + p.getBonus()).sum();
+                int gamesPlayed = points.size(); // Tổng times played
+                int highestScore = points.stream().mapToInt(p -> p.getScore() + p.getBonus()).max().orElse(0);
+                return UserStatsResponse.builder()
+                                .totalPoints(totalPoints)
+                                .gamesPlayed(gamesPlayed)
+                                .highestScore(highestScore)
+                                .build();
         }
 
 }
