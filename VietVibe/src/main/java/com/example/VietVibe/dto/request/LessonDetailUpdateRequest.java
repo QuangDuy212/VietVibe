@@ -1,8 +1,5 @@
 package com.example.VietVibe.dto.request;
 
-import com.example.VietVibe.enums.LessonLevel;
-
-import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,12 +12,12 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class LessonCreationRequest {
-    @NotBlank
-    String lessontitle;
+public class LessonDetailUpdateRequest {
+    String gramma;
 
-    String videourl;
+    String vocab;
 
-    String description;
-    LessonLevel level;
+    String phonetic;
+
+    String lessonId;
 }

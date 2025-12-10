@@ -56,5 +56,7 @@ VietVibe_Frontend/*.local
 *.njsproj
 *.sln
 *.sw?
-
+package-lock.json
 node_modules/
+/upload
+frontend/package-lock.json

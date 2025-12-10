@@ -20,7 +20,7 @@ const Header = () => {
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [user]);
 
   const checkAuthStatus = async () => {
     if (user && user._id) {
@@ -44,7 +44,7 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
           <BookOpen className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             VietVibe

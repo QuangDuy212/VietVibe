@@ -13,6 +13,7 @@ import {
 import { Users, BookOpen, Gamepad2, Award, Shield, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
+
 interface AdminSidebarProps {
   stats: {
     users: number;
@@ -30,12 +31,13 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
   const navItems = [
     { id: "users", title: "Users", icon: Users, count: stats.users },
     { id: "lessons", title: "Lessons", icon: BookOpen, count: stats.lessons },
+    // { id: "vocabulary", title: "Vocabulary", icon: BookOpen, count: null },
     { id: "games", title: "Games", icon: Gamepad2, count: stats.games },
     { id: "points", title: "Points", icon: Award, count: null },
   ];
 
   return (
-    <Sidebar className={collapsed ? "w-20" : "w-72"} collapsible="icon">
+    <Sidebar className={collapsed ? "w-20" : "w-[250px]"} collapsible="icon">
       <SidebarContent className="bg-gradient-to-b from-background via-muted/30 to-primary/5">
         {/* Dashboard Header */}
         {!collapsed && (

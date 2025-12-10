@@ -1,3 +1,4 @@
+// LessonDetail.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -5,162 +6,239 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, CheckCircle2, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
 
+import {
+  ILesson,
+  ICurrentLesson
+} from '@/types/common.type';
+import { callFetchLessonsPaginated, callFetchLessonDetail, callFetchVocbulary } from "@/config/api";
+
+const levelColors = {
+  BEGINNER: "bg-secondary/10 text-secondary hover:bg-secondary/20",
+  INTERMEDIATE: "bg-accent/10 text-accent hover:bg-accent/20",
+  ADVANCE: "bg-primary/10 text-primary hover:bg-primary/20",
+};
 const LessonDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Mock data - thay bằng data thật từ API
-  const lesson = {
-    id: id,
-    title: "Chào hỏi và Giới thiệu",
-    description: "Học cách chào hỏi và giới thiệu bản thân bằng tiếng Việt",
-    level: "Beginner",
-    duration: "15 phút",
-    progress: 60,
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Thay bằng video thật
-    sections: [
-      {
-        id: 1,
-        title: "Giới thiệu",
-        duration: "3 phút",
-        completed: true,
-      },
-      {
-        id: 2,
-        title: "Từ vựng cơ bản",
-        duration: "5 phút",
-        completed: true,
-      },
-      {
-        id: 3,
-        title: "Thực hành hội thoại",
-        duration: "7 phút",
-        completed: false,
-      },
-    ],
-    vocabulary: [
-      { word: "Xin chào", meaning: "Hello", example: "Xin chào! Tôi là Mai." },
-      { word: "Tạm biệt", meaning: "Goodbye", example: "Tạm biệt! Hẹn gặp lại." },
-      { word: "Cảm ơn", meaning: "Thank you", example: "Cảm ơn bạn rất nhiều!" },
-    ],
+  const [currentLesson, setCurrentLesson] = useState<ICurrentLesson | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+
+  // Fetch lesson data on component mount
+  useEffect(() => {
+    const fetchLessonData = async () => {
+      if (!id) return;
+
+      setLoading(true);
+      try {
+        // Fetch paginated lessons to get current lesson with embedded vocabulary & details
+        const lessonRes = await callFetchLessonsPaginated(1, 100);
+        const lessons: ILesson[] = lessonRes?.data?.result || [];
+        const foundLesson = lessons.find(l => l._id === id);
+
+        if (!foundLesson) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch lesson details and vocabulary for sections data
+        // Handle lesson details gracefully if not found
+        let detailData: any = {};
+        try {
+          const detailRes = await callFetchLessonDetail(id);
+          detailData = detailRes?.data || {};
+        } catch (detailError) {
+          // Lesson detail doesn't exist yet, use empty object
+          console.log("Lesson detail not found, using empty content");
+          detailData = {};
+        }
+
+        // Fetch vocabulary
+        const vocabRes = await callFetchVocbulary(id);
+        
+        // Ensure detailData is correctly extracted from the API response
+        // If detailData is empty, fallback to "No data available"
+
+        const sections = [
+          {
+            id: 1,
+            title: "Grammar",
+            progressThreshold: 33,
+            content: detailData.gramma || "No data available",
+          },
+          {
+            id: 2,
+            title: "Vocabulary",
+            progressThreshold: 66,
+            content: detailData.vocab || "No data available",
+          },
+          {
+            id: 3,
+            title: "Phonetics",
+            progressThreshold: 100,
+            content: detailData.phonetic || "No data available",
+          },
+        ];
+
+        // Transform vocabulary from API response to simplified format for display
+        // No need to filter - API already returns data for this lesson only
+        const allVocab = vocabRes?.data || [];
+        const simplifiedVocabulary = (Array.isArray(allVocab) ? allVocab : [])
+          .map((item: any) => ({
+            word: item.word,
+            meaning: item.englishMeaning,
+            example: item.exampleSentence || "No example sentence",
+          }));
+
+        // Calculate section completion based on current progress
+        const sectionsWithCompletion = sections.map(section => ({
+          ...section,
+          completed: (progress || 0) >= section.progressThreshold,
+        }));
+
+        // Set combined lesson data
+        setCurrentLesson({
+          ...foundLesson,
+          sections: sectionsWithCompletion,
+          simplifiedVocabulary,
+          details: null,
+        });
+
+      } catch (error) {
+        console.error("Error fetching lesson data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLessonData();
+  }, [id, progress]);
+
+  // Update progress locally
+  const handleContinueLesson = () => {
+    const newProgress = Math.min(100, progress + 20);
+    setProgress(newProgress);
   };
 
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case "Beginner":
-        return "bg-primary/20 text-primary";
-      case "Intermediate":
-        return "bg-secondary/20 text-secondary";
-      case "Advanced":
-        return "bg-accent/20 text-accent";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
+  const handleCompleteLesson = () => {
+    setProgress(100);
   };
 
+  // Show loading state
+  if (loading || !currentLesson) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4"></div>
+          <div className="text-center text-muted-foreground">Loading lesson...</div>
+        </div>
+      </div>
+    );
+  }
+  // JSX/Rendering
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container px-4 py-8">
-        {/* Back Button */}
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="mb-6"
           onClick={() => navigate("/lesson")}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại
+          Go Back
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Lesson Header */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
-                    <CardTitle className="text-3xl">{lesson.title}</CardTitle>
-                    <p className="text-muted-foreground">{lesson.description}</p>
+                    <CardTitle className="text-3xl">{currentLesson.lessontitle}</CardTitle>
+                    <p className="text-muted-foreground">{currentLesson.description}</p>
                   </div>
-                  <Badge className={`${getLevelColor(lesson.level)} border-0`}>
-                    {lesson.level}
-                  </Badge>
+                  <Badge className={levelColors[currentLesson.level]}>{currentLesson.level}</Badge>
                 </div>
-                
+
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span className="text-sm">{lesson.duration}</span>
+                    <span className="text-sm">15 minutes</span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Tiến độ</span>
-                      <span className="text-sm text-muted-foreground">{lesson.progress}%</span>
+                      <span className="text-sm font-medium">Progress</span>
+                      <span className="text-sm">{progress}%</span>
                     </div>
-                    <Progress value={lesson.progress} className="h-2" />
+                    <Progress value={progress} className="h-2" />
                   </div>
                 </div>
               </CardHeader>
             </Card>
 
-            {/* Video Player */}
             <Card>
               <CardContent className="p-0">
                 <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={lesson.videoUrl}
-                    title={lesson.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
+                  <video
+                    src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/storage/video/${currentLesson?.videourl}`}
+                    controls
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="p-6">
-                  <Button variant="gradient" size="lg" className="w-full">
+                  <Button
+                    variant="default"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleContinueLesson}
+                  >
                     <Play className="h-5 w-5 mr-2" />
-                    Tiếp tục học
+                    {progress === 100 ? "Review Lesson" : "Continue Learning"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Vocabulary Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Từ vựng trong bài</CardTitle>
+                <CardTitle>Vocabularies in Lesson</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {lesson.vocabulary.map((item, index) => (
-                  <div key={index} className="p-4 bg-muted/50 rounded-xl">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-semibold text-lg">{item.word}</h4>
-                        <p className="text-sm text-muted-foreground">{item.meaning}</p>
+                {currentLesson.simplifiedVocabulary?.length > 0 ? (
+                  currentLesson.simplifiedVocabulary.map((item, index) => (
+                    <div key={index} className="p-4 bg-muted/50 rounded-xl">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-lg">{item.word}</h4>
+                          <p className="text-sm text-muted-foreground">{item.meaning}</p>
+                        </div>
                       </div>
+                      <p className="text-sm italic mt-2">
+                        Example: <span className="font-medium">{item.example}</span>
+                      </p>
                     </div>
-                    <p className="text-sm italic mt-2">
-                      Ví dụ: <span className="font-medium">{item.example}</span>
-                    </p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No vocabulary found for this lesson.</p>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Lesson Sections */}
             <Card>
               <CardHeader>
-                <CardTitle>Nội dung bài học</CardTitle>
+                <CardTitle>Lesson Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {lesson.sections.map((section) => (
+                {currentLesson.sections?.map((section) => (
                   <div
                     key={section.id}
                     className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
@@ -173,21 +251,31 @@ const LessonDetail = () => {
                     <div className="flex-1">
                       <p className="font-medium text-sm">{section.title}</p>
                       <p className="text-xs text-muted-foreground">{section.duration}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{(section as any).content}</p>
                     </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
             <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-0">
               <CardContent className="p-6 text-center">
-                <h3 className="font-semibold mb-2">Hoàn thành bài học</h3>
+                <h3 className="font-semibold mb-2">
+                  {progress === 100 ? "Completed!" : "Complete the Lesson"}
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Làm quiz để kiểm tra kiến thức
+                  {progress === 100
+                    ? "You have completed this lesson!"
+                    : "Take a quiz to test your knowledge"
+                  }
                 </p>
-                <Button variant="default" className="w-full">
-                  Làm bài kiểm tra
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={progress === 100 ? undefined : handleCompleteLesson}
+                  disabled={progress === 100}
+                >
+                  {progress === 100 ? "Completed" : "Take the Quiz"}
                 </Button>
               </CardContent>
             </Card>

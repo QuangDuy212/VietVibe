@@ -39,6 +39,9 @@ public class Game {
     @JsonManagedReference
     List<Question> questions = new ArrayList<>();
 
-    @OneToOne(mappedBy = "game")
-    private Lesson lesson;
+    // @OneToOne(mappedBy = "game")
+    // Lesson lesson;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "lesson_id")
+    Lesson lesson;
 }
