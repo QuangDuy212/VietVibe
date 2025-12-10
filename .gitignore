@@ -59,4 +59,3 @@ VietVibe_Frontend/*.local
 package-lock.json
 node_modules/
 /upload
-frontend/package-lock.json
