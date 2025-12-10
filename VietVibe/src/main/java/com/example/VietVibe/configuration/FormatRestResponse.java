@@ -41,6 +41,11 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
         if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
             return body;
         }
+        if (body instanceof org.springframework.core.io.Resource
+            || body instanceof org.springframework.http.ResponseEntity
+            || body instanceof byte[]) {
+            return body;
+        }
         if (status >= 400) {
             // case error
             return body;

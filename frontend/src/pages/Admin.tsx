@@ -14,6 +14,7 @@ import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, Responsive
 import PointsManagement from "@/components/admin/PointsManagement";
 import { useAppSelector } from "@/redux/hook";
 
+
 const Admin = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -33,9 +34,9 @@ const Admin = () => {
 
   const checkAdminStatus = async () => {
     try {
-      if(user.role === "ADMIN"){
+      if (user.role === "ADMIN") {
         setIsAdmin(true);
-      }else{
+      } else {
         toast.error("Access denied. Admins only.");
         navigate("/");
       }
@@ -91,6 +92,8 @@ const Admin = () => {
         return <GamesManagement />;
       case "points":
         return <PointsManagement />;
+      //   case "vocabulary":
+      // return <VocabularyManagement />;
       default:
         return <UsersManagement />;
     }
@@ -99,12 +102,13 @@ const Admin = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-muted/30 to-primary/5">
-        <AdminSidebar 
-          stats={stats} 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        
+
+          <AdminSidebar
+            stats={stats}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+
         <main className="flex-1 relative overflow-hidden">
           {/* Animated background elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -115,7 +119,7 @@ const Admin = () => {
           <div className="relative z-10">
             {/* Header with Sidebar Trigger */}
             <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border/50">
-              <div className="container mx-auto px-6 py-4 flex items-center gap-4">
+              <div className="container mx-auto px-6 py-[26px] flex items-center gap-4">
                 <SidebarTrigger />
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
