@@ -30,7 +30,7 @@ const LessonCard = ({ id = "1", title, description, level, duration, progress }:
           </CardTitle>
           <Star className="h-5 w-5 text-muted-foreground hover:text-yellow-500 transition-colors cursor-pointer" />
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2 h-[40px] break-words overflow-hidden">{description}</p>
       </CardHeader>
       
       <CardContent className="space-y-4">
