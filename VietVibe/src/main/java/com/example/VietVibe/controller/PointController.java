@@ -8,6 +8,7 @@ import com.example.VietVibe.dto.request.PointRequest;
 import com.example.VietVibe.dto.request.PointSearchRequest;
 import com.example.VietVibe.dto.request.PointUpdateRequest;
 import com.example.VietVibe.dto.response.PointResponse;
+import com.example.VietVibe.dto.response.UserStatsResponse;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.service.PointService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,5 +88,18 @@ public class PointController {
     public ResponseEntity<List<PointResponse>> getMyHistory(Authentication authentication) {
         String currentUserId = authentication.getName();
         return ResponseEntity.ok(pointService.getHistory(currentUserId));
+    }
+
+    // Mới: Add point khi chơi xong
+    @PostMapping("/add")
+    public ResponseEntity<PointResponse> addPoint(@RequestBody PointRequest request) {
+        return ResponseEntity.ok(pointService.addPoint(request));
+    }
+
+    // Mới: Get user stats
+    @GetMapping("/user/{userId}/stats")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.name")
+    public ResponseEntity<UserStatsResponse> getUserStats(@PathVariable String userId) {
+        return ResponseEntity.ok(pointService.getUserStats(userId));
     }
 }

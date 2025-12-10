@@ -43,7 +43,7 @@ public class GameController {
 
     @GetMapping("/{id}")
     @ApiMessage("Get a game from database")
-    ResponseEntity<GameResponse> getGame(@PathVariable("id") long id){
+    ResponseEntity<GameResponse> getGame(@PathVariable("id") long id) {
         return ResponseEntity.ok().body(this.gameService.getGameById(id));
     }
 
@@ -55,13 +55,13 @@ public class GameController {
 
     @PostMapping("/create")
     @ApiMessage("Create a new game success")
-    ResponseEntity<GameResponse> createGame(@RequestBody GameCreationRequest request){
+    ResponseEntity<GameResponse> createGame(@RequestBody GameCreationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.gameService.create(request));
     }
-    
+
     @DeleteMapping("/{id}")
     @ApiMessage("Delete a game success")
-    ResponseEntity<ApiString> deleteGame(@PathVariable long id){
+    ResponseEntity<ApiString> deleteGame(@PathVariable long id) {
         gameService.delete(id);
         return ResponseEntity.ok().body(ApiString.builder()
                 .message("Deleted")
@@ -70,7 +70,15 @@ public class GameController {
 
     @PutMapping("/{id}")
     @ApiMessage("Update a game success")
-    ResponseEntity<GameResponse> updateGame(@PathVariable Long id, @RequestBody GameUpdateRequest request){
+    ResponseEntity<GameResponse> updateGame(@PathVariable Long id, @RequestBody GameUpdateRequest request) {
         return ResponseEntity.ok().body(this.gameService.updateGame(id, request));
+    }
+
+    // Mới: Start play to increment timesPlayed
+    @PostMapping("/{id}/play")
+    @ApiMessage("Start playing game")
+    ResponseEntity<Void> startPlay(@PathVariable Long id) {
+        gameService.startPlay(id);
+        return ResponseEntity.ok().build();
     }
 }

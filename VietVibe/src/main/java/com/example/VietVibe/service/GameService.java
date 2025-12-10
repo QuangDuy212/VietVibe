@@ -15,6 +15,7 @@ import com.example.VietVibe.dto.request.GameCreationRequest;
 import com.example.VietVibe.dto.request.GameUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.GameResponse;
+import com.example.VietVibe.dto.response.PlayGameResponse;
 import com.example.VietVibe.entity.Answer;
 import com.example.VietVibe.entity.Game;
 import com.example.VietVibe.entity.Question;
@@ -22,6 +23,7 @@ import com.example.VietVibe.exception.AppException;
 import com.example.VietVibe.exception.ErrorCode;
 import com.example.VietVibe.mapper.GameMapper;
 import com.example.VietVibe.repository.GameRepository;
+import com.example.VietVibe.repository.PointRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
@@ -35,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GameService {
     GameRepository gameRepository;
+    PointRepository pointRepository;
 
     GameMapper gameMapper;
 
@@ -152,4 +155,20 @@ public class GameService {
     public void delete(long id) {
         gameRepository.deleteById(id);
     }
+
+    // Mới: Tăng timesPlayed
+    @Transactional
+    public void startPlay(Long id) {
+        Game game = gameRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_EXISTED));
+        game.setTimesPlayed(game.getTimesPlayed() + 1);
+        gameRepository.save(game);
+    }
+
+    // Helper: Lấy bestScore từ points
+    private int getBestScore(Game game) {
+        return pointRepository.findTopByGameOrderByScoreDesc(game)
+                .map(p -> p.getScore() + p.getBonus())
+                .orElse(0);
+    }
+
 }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface PointRepository extends JpaRepository<Point, Long> , JpaSpecificationExecutor<Point> {
     List<Point> findByUser(User user);
@@ -16,4 +17,7 @@ public interface PointRepository extends JpaRepository<Point, Long> , JpaSpecifi
     List<Point> findByScoreBetween(int min, int max);
     void deleteByUser(User user);
     void deleteByGame(Game game);
+
+    long countByGame(Game game);
+    Optional<Point> findTopByGameOrderByScoreDesc(Game game);
 }

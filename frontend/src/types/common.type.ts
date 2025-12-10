@@ -100,6 +100,11 @@ export interface IPaginationRes<T> {
     result: T[];
 }
 
+export interface UserStatsResponse {
+    totalPoints: number;
+    gamesPlayed: number;
+    highestScore: number;
+}
 // export interface ILesson {
 //     _id: string;
 //     lessontitle: string;

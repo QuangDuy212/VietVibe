@@ -60,3 +60,4 @@ package-lock.json
 node_modules/
 /upload
 frontend/package-lock.json
+application.yml

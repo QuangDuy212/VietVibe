@@ -25,6 +25,8 @@ public class GameResponse {
     String description;
 
     GameType type;
+    int timesPlayed;  // Thêm
+    int bestScore;    // Thêm
 
     ArrayList<Question> questions = new ArrayList<>();
 }
