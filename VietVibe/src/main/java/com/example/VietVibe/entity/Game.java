@@ -3,6 +3,8 @@ package com.example.VietVibe.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
 import com.example.VietVibe.enums.GameType;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -32,11 +34,11 @@ public class Game {
 
     int totalQuestion;
     int timesPlayed;
+
     int bestScore = 0;
 
-
     @Enumerated(EnumType.STRING)
-    GameType type; // 
+    GameType type; //
 
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -48,11 +50,7 @@ public class Game {
     @JoinColumn(name = "lesson_id")
     Lesson lesson;
 
-    @OneToMany(
-        mappedBy = "game",
-        cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH, CascadeType.DETACH},
-        fetch = FetchType.LAZY
-    )
+    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
     List<Point> points = new ArrayList<>();
 
