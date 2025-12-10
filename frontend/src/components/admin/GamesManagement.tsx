@@ -1,3 +1,4 @@
+// src/components/admin/GamesManagement.tsx
 import {
   Card,
   CardContent,
@@ -66,6 +67,10 @@ const GamesManagement = () => {
     totalPages,
     totalItems,
 
+    // search/filter
+    searchKeyword,
+    typeFilter,
+
     isCreateMode,
     isEditMode,
     canEdit,
@@ -87,6 +92,12 @@ const GamesManagement = () => {
     deleteGame,
     changePage,
     changePageSize,
+
+    // search/filter actions
+    setSearchKeyword,
+    setTypeFilter,
+    applyFilters,
+    clearFilters,
   } = useGamesManagement();
 
   const getTypeColor = (type: string) => {
@@ -128,16 +139,6 @@ const GamesManagement = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Loading...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
 
@@ -151,16 +152,88 @@ const GamesManagement = () => {
                 <Gamepad2 className="h-5 w-5" />
                 Games List
               </CardTitle>
-              <CardDescription>Total: {totalItems} games</CardDescription>
+              <CardDescription>
+                Total: {totalItems} games
+              </CardDescription>
             </div>
-            <Button onClick={openCreateGameDialog} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Game
-            </Button>
+            <div className="flex items-center gap-2">
+              {loading && (
+                <span className="text-xs text-muted-foreground">
+                  Updating...
+                </span>
+              )}
+              <Button onClick={openCreateGameDialog} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Game
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl border overflow-hidden">
+          {/* Search + Filter (BE) */}
+          <div className="flex flex-col md:flex-row gap-3 mb-4 items-start md:items-center justify-between">
+            <div className="flex-1 flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Search by name or description..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyFilters();
+                }}
+                className="sm:max-w-sm"
+              />
+              <Button
+                variant="outline"
+                className="sm:w-auto"
+                onClick={applyFilters}
+              >
+                Search
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Select
+                value={typeFilter}
+                onValueChange={(value) =>
+                  setTypeFilter(value as "ALL" | Game["type"])
+                }
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All types</SelectItem>
+                  <SelectItem value="MULTIPLE_CHOICE">
+                    Multiple choice
+                  </SelectItem>
+                  <SelectItem value="SENTENCE_ORDER">
+                    Sentence order
+                  </SelectItem>
+                  <SelectItem value="LISTENING_CHOICE">
+                    Listening choice
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(searchKeyword.trim() || typeFilter !== "ALL") && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="rounded-xl border overflow-hidden relative">
+            {/* overlay loading nhẹ nếu muốn */}
+            {loading && (
+              <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] pointer-events-none flex items-start justify-end p-2">
+                <span className="text-xs text-muted-foreground">
+                  Loading...
+                </span>
+              </div>
+            )}
+
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -214,13 +287,24 @@ const GamesManagement = () => {
                   </TableRow>
                 ))}
 
-                {games.length === 0 && (
+                {!loading && games.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={4}
                       className="text-center text-muted-foreground py-6"
                     >
                       No games found
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {loading && games.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-muted-foreground py-6"
+                    >
+                      Loading...
                     </TableCell>
                   </TableRow>
                 )}
@@ -262,7 +346,7 @@ const GamesManagement = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => changePage(page - 1)}
-                  disabled={page <= 1}
+                  disabled={page <= 1 || loading}
                 >
                   Previous
                 </Button>
@@ -273,7 +357,7 @@ const GamesManagement = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => changePage(page + 1)}
-                  disabled={page >= totalPages}
+                  disabled={page >= totalPages || loading}
                 >
                   Next
                 </Button>

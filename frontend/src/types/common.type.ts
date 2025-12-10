@@ -35,6 +35,30 @@ export interface IUser {
     updatedBy: string;
 }
 
+export interface IAnswer {
+    _id?: string;
+    content: string;
+    isCorrect?: boolean;
+    correct?: boolean;
+    orderIndex?: number;
+}
+
+
+export interface IQuestion {
+    _id?: string;
+    content: string;
+    imageUrl?: string;
+    audioUrl?: string;
+    answers: IAnswer[];
+}
+
+export interface IGame {
+    _id: string;
+    name: string;
+    description: string;
+    type: "MULTIPLE_CHOICE" | "SENTENCE_ORDER" | "LISTENING_CHOICE";
+    questions: IQuestion[];
+}
 export interface PointResponse {
     id: number;
     score: number;
@@ -80,4 +104,75 @@ export interface UserStatsResponse {
     totalPoints: number;
     gamesPlayed: number;
     highestScore: number;
+}
+// export interface ILesson {
+//     _id: string;
+//     lessontitle: string;
+//     videourl: string;
+//     description: string;
+    
+//     // Các trường Audit
+//     createdAt: string;
+//     updatedAt: string;
+//     createdBy: string;
+//     updatedBy: string;
+//     vocabulary: IVocabulary[];
+//     lessonDetail: ILessonDetail;
+// }
+// export interface IVocabulary {
+//   _id: string;
+//   word: string;
+//   englishMeaning: string;
+//   exampleSentence: string;
+//   lessonId?: string | ILesson | null;
+//   createdAt: string;
+//   updatedAt: string;
+//   createdBy: string;
+//   updatedBy: string;
+// }
+
+// export interface ILessonDetail {
+//     _id: string;
+//     gramma: string;
+//     vocab: string;
+//     phonetic: string;
+//     createdAt: string;
+//     updatedAt: string;
+//     createdBy: string;
+//     updatedBy: string;
+// }
+
+export interface IVocabulary {
+  _id: string;
+  word: string;
+  englishMeaning: string;
+  exampleSentence: string;
+  lessonId?: string;
+  createdAt?: string;
+}
+
+export interface ILessonDetail {
+  _id: string;
+  gramma: string;
+  vocab: string;
+  phonetic: string;
+  lessonId?: string;
+}
+
+// Cập nhật ILesson để populate đúng
+export interface ILesson {
+  _id: string;
+  lessontitle: string;
+  videourl: string;
+  description: string;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCE";
+  vocabulary?: IVocabulary[];
+  lessonDetail?: ILessonDetail | null;
+  createdAt?: string;
+  createdBy?: string;
+}
+export interface ICurrentLesson extends ILesson {
+    sections: { id: number; title: string; duration: string; completed: boolean }[];
+    simplifiedVocabulary: { word: string; meaning: string; example: string }[];
+    details: ILessonDetail | null;
 }

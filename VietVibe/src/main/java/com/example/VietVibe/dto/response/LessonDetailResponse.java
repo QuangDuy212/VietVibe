@@ -2,8 +2,7 @@ package com.example.VietVibe.dto.response;
 
 import java.time.Instant;
 
-import com.example.VietVibe.enums.LessonLevel;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -17,15 +16,23 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class LessonResponse {
-    String _id;
-    String lessontitle;
-    String videourl;
-    String description;
-    LessonLevel level;
+public class LessonDetailResponse {
+    @JsonProperty("_id")
+    String id;
+
+    String gramma;
+
+    String vocab;
+
+    String phonetic;
+
+    String lessonId;
+
     Instant createdAt;
+
     Instant updatedAt;
+
     String createdBy;
+
     String updatedBy;
 }

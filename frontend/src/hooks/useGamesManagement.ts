@@ -36,12 +36,38 @@ export const useGamesManagement = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalItems, setTotalItems] = useState<number>(0);
 
+  // search & filter (đẩy xuống BE dùng spring-filter)
+  type GameType = IGame["type"];
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | GameType>("ALL");
+
   useEffect(() => {
     fetchGames(1, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ====== FETCH LIST ======
+  // ====== SEARCH & FILTER: build expression cho BE (spring-filter) ======
+  const buildFilterExpression = () => {
+    const parts: string[] = [];
+    const keyword = searchKeyword.trim();
+
+    if (keyword) {
+      // escape dấu nháy đơn trong keyword để không vỡ string
+      const escaped = keyword.replace(/'/g, "\\'");
+      // spring-filter: ~ = like, dùng '%' trong string, và dùng NHÁY ĐƠN
+      parts.push(`(name ~ '%${escaped}%' or description ~ '%${escaped}%')`);
+    }
+
+    if (typeFilter !== "ALL") {
+      // enum GameType: MULTIPLE_CHOICE / SENTENCE_ORDER / LISTENING_CHOICE
+      parts.push(`type : '${typeFilter}'`);
+    }
+
+    // nếu có cả search + type → nối bằng and
+    return parts.join(" and ");
+  };
+
+  // ====== FETCH LIST (BE filter + BE pagination) ======
   const fetchGames = async (
     pageParam: number = page,
     pageSizeParam: number = pageSize
@@ -49,13 +75,13 @@ export const useGamesManagement = () => {
     try {
       setLoading(true);
 
-      // Ép kiểu qua unknown để tránh lỗi AxiosResponse vs IBackendRes
+      const filterExpr = buildFilterExpression();
+
       const res = (await callGetGames(
         pageParam,
-        pageSizeParam
+        pageSizeParam,
+        filterExpr || undefined
       )) as unknown as IBackendRes<IPaginationRes<IGame>>;
-
-      // console.log("getGames response FE:", res);
 
       const pagination = res.data;
       const result = pagination?.result ?? [];
@@ -92,6 +118,18 @@ export const useGamesManagement = () => {
     if (!newSize || newSize <= 0) return;
     setPageSize(newSize);
     fetchGames(1, newSize);
+  };
+
+  // ====== SEARCH / FILTER (gọi BE) ======
+  const applyFilters = () => {
+    // mỗi lần search/filter thì về trang 1
+    fetchGames(1, pageSize);
+  };
+
+  const clearFilters = () => {
+    setSearchKeyword("");
+    setTypeFilter("ALL");
+    fetchGames(1, pageSize);
   };
 
   // ====== OPEN DIALOG: CREATE / VIEW / EDIT ======
@@ -439,6 +477,10 @@ export const useGamesManagement = () => {
     totalPages,
     totalItems,
 
+    // search/filter
+    searchKeyword,
+    typeFilter,
+
     // flags
     isViewMode,
     isCreateMode,
@@ -463,5 +505,11 @@ export const useGamesManagement = () => {
     deleteGame,
     changePage,
     changePageSize,
+
+    // search/filter actions
+    setSearchKeyword,
+    setTypeFilter,
+    applyFilters,
+    clearFilters,
   };
 };
