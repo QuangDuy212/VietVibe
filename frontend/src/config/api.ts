@@ -1,8 +1,7 @@
 
-import { IGame, IQuestion, IPaginationRes, IVocabulary, ILessonDetail } from '@/types/common.type';
+import { IGame, IQuestion, IPaginationRes, IVocabulary, ILessonDetail, PointResponse, IPointUpdateRequest, IPointSearchRequest } from '@/types/common.type';
 import { IAccount, IBackendRes, IGetAccount, IUser, ILesson } from '@/types/common.type';
 import axios from './axios-customize';
-import { PointResponse, IPaginationRes } from '@/types/common.type';
 
 //MODULE AUTH
 export const callFetchAccount = () => {

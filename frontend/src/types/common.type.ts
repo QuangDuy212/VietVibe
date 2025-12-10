@@ -58,6 +58,7 @@ export interface IGame {
     description: string;
     type: "MULTIPLE_CHOICE" | "SENTENCE_ORDER" | "LISTENING_CHOICE";
     questions: IQuestion[];
+}
 export interface PointResponse {
     id: number;
     score: number;
