@@ -1,4 +1,5 @@
-import { IAccount, IBackendRes, IGetAccount, IPointSearchRequest, IPointUpdateRequest, IUser } from '@/types/common.type';
+
+import { IAccount, IBackendRes, IGame, IGetAccount, IPaginationRes, IQuestion, IUser,ILesson } from '@/types/common.type';
 import axios from './axios-customize';
 import { all } from 'axios';
 
