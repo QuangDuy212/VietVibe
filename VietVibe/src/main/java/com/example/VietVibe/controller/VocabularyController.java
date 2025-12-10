@@ -42,6 +42,13 @@ public class VocabularyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.vocabularyService.create(request));
     }
 
+    @PublicEndpoint
+    @PostMapping("/batch")
+    @ApiMessage("Create vocabularies batch success")
+    ResponseEntity<List<VocabularyResponse>> createVocabulariesBatch(@RequestBody List<@Valid VocabularyCreationRequest> requests) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.vocabularyService.create(requests));
+    }
+
     @GetMapping("/all")
     @ApiMessage("Get all vocabularies (no paging) success")
     ResponseEntity<List<VocabularyResponse>> getAllNoPaging() {

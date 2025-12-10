@@ -21,6 +21,8 @@ import com.example.VietVibe.exception.AppException;
 import com.example.VietVibe.exception.ErrorCode;
 import com.example.VietVibe.mapper.LessonMapper;
 import com.example.VietVibe.repository.LessonRepository;
+import com.example.VietVibe.repository.LessonDetailRepository;
+import com.example.VietVibe.repository.VocabularyRepository;
 import com.example.VietVibe.repository.UserRepository;
 import com.example.VietVibe.util.SecurityUtil;
 
@@ -36,6 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 public class LessonService {
     LessonRepository lessonRepository;
     LessonMapper lessonMapper;
+    LessonDetailRepository lessonDetailRepository;
+    VocabularyRepository vocabularyRepository;
     @Autowired
     UserRepository userRepository;
 
@@ -69,6 +73,26 @@ public class LessonService {
     public void delete(String id) {
         log.info("Delete lesson");
         Lesson lesson = lessonRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        // delete vocabularies belonging to this lesson (if any)
+        try {
+            if (lesson.getVocabularies() != null && !lesson.getVocabularies().isEmpty()) {
+                vocabularyRepository.deleteAll(lesson.getVocabularies());
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to delete vocabularies for lesson {}: {}", id, ex.getMessage());
+        }
+
+        // delete lesson detail if exists
+        try {
+            if (lesson.getLessonDetail() != null) {
+                lessonDetailRepository.delete(lesson.getLessonDetail());
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to delete lesson detail for lesson {}: {}", id, ex.getMessage());
+        }
+
+        // finally delete the lesson itself
         lessonRepository.delete(lesson);
     }
 
@@ -97,24 +121,4 @@ public class LessonService {
                 .result(listLesson)
                 .build();
     }
-
-    // public ApiPagination<LessonResponse> getUserLessons(Pageable pageable) {
-    //     String currentUsername = SecurityUtil.getCurrentUserLogin()
-    //             .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
-
-    //     User currentUser = userRepository.findByUsername(currentUsername)
-    //             .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-    //     Page<Lesson> page = lessonRepository.findByUsersContainingOrderByCreatedAtDesc(currentUser, pageable);
-
-    //     List<LessonResponse> list = page.getContent().stream().map(lessonMapper::toLessonResponse).toList();
-
-    //     ApiPagination.Meta mt = new ApiPagination.Meta();
-    //     mt.setCurrent(pageable.getPageNumber() + 1);
-    //     mt.setPageSize(pageable.getPageSize());
-    //     mt.setPages(page.getTotalPages());
-    //     mt.setTotal(page.getTotalElements());
-
-    //     return ApiPagination.<LessonResponse>builder().meta(mt).result(list).build();
-    // }
-
 }

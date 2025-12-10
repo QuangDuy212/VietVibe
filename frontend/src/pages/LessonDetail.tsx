@@ -14,7 +14,11 @@ import {
 } from '@/types/common.type';
 import { callFetchLessonsPaginated, callFetchLessonDetail, callFetchVocbulary } from "@/config/api";
 
-
+const levelColors = {
+  BEGINNER: "bg-secondary/10 text-secondary hover:bg-secondary/20",
+  INTERMEDIATE: "bg-accent/10 text-accent hover:bg-accent/20",
+  ADVANCE: "bg-primary/10 text-primary hover:bg-primary/20",
+};
 const LessonDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -41,33 +45,41 @@ const LessonDetail = () => {
         }
 
         // Fetch lesson details and vocabulary for sections data
-        const [detailRes, vocabRes] = await Promise.all([
-          callFetchLessonDetail(id),
-          callFetchVocbulary(id),
-        ]);
+        // Handle lesson details gracefully if not found
+        let detailData = {};
+        try {
+          const detailRes = await callFetchLessonDetail(id);
+          detailData = detailRes?.data || {};
+        } catch (detailError) {
+          // Lesson detail doesn't exist yet, use empty object
+          console.log("Lesson detail not found, using empty content");
+          detailData = {};
+        }
 
+        // Fetch vocabulary
+        const vocabRes = await callFetchVocbulary(id);
+        
         // Ensure detailData is correctly extracted from the API response
-        const detailData = detailRes?.data || {}; // Adjusted to match the API response structure
+        // If detailData is empty, fallback to "Không có dữ liệu"
 
         const sections = [
           {
             id: 1,
             title: "Ngữ pháp",
-            duration: "3 phút",
             progressThreshold: 33,
             content: detailData.gramma || "Không có dữ liệu", // Ensure fallback value
           },
           {
             id: 2,
             title: "Từ vựng",
-            duration: "5 phút",
+            
             progressThreshold: 66,
             content: detailData.vocab || "Không có dữ liệu", // Ensure fallback value
           },
           {
             id: 3,
             title: "Ngữ âm",
-            duration: "7 phút",
+            
             progressThreshold: 100,
             content: detailData.phonetic || "Không có dữ liệu", // Ensure fallback value
           },
@@ -153,7 +165,7 @@ const LessonDetail = () => {
                     <CardTitle className="text-3xl">{currentLesson.lessontitle}</CardTitle>
                     <p className="text-muted-foreground">{currentLesson.description}</p>
                   </div>
-                  <Badge className="bg-primary/20 text-primary border-0">Beginner</Badge>
+                  <Badge className={levelColors[currentLesson.level]}>{currentLesson.level}</Badge>
                 </div>
 
                 <div className="flex items-center gap-4 mt-4">

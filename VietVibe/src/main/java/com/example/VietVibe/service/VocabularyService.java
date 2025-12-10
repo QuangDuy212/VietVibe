@@ -1,6 +1,9 @@
 package com.example.VietVibe.service;
 
 import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.stereotype.Service;
 
@@ -45,6 +48,42 @@ public class VocabularyService {
 
         vocabulary = vocabularyRepository.save(vocabulary);
         return vocabularyMapper.toVocabularyResponse(vocabulary);
+    }
+
+    @Transactional
+    public List<VocabularyResponse> create(List<VocabularyCreationRequest> requests) {
+        log.info("Create vocabularies batch");
+        if (requests == null || requests.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // check duplicate words inside the request batch
+        // List<String> words = requests.stream().map(r -> r.getWord().trim()).collect(Collectors.toList());
+        // long distinctCount = words.stream().distinct().count();
+        // if (distinctCount != words.size()) {
+        //     throw new AppException(ErrorCode.CATEGORY_EXISTED);
+        // }
+
+        // check existing words in DB
+        // for (String w : words) {
+        //     if (vocabularyRepository.existsByWord(w)) {
+        //         throw new AppException(ErrorCode.CATEGORY_EXISTED);
+        //     }
+        // }
+
+        List<Vocabulary> toSave = requests.stream(). map(req -> {
+            Vocabulary v = vocabularyMapper.toVocabulary(req);
+            if (req.getLessonId() != null && !req.getLessonId().isEmpty()) {
+                Lesson lesson = lessonRepository.findById(req.getLessonId())
+                        .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+                v.setLesson(lesson);
+            }
+            return v;
+        }).collect(Collectors.toList());
+
+        List<Vocabulary> saved = vocabularyRepository.saveAll(toSave);
+
+        return saved.stream().map(vocabularyMapper::toVocabularyResponse).collect(Collectors.toList());
     }
 
     public VocabularyResponse getDetailVocabulary(String id) {

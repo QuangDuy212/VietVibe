@@ -31,6 +31,18 @@ export const callGetAllUsers = (page = 0, size = 10, sort?: string) => {
     return axios.get<unknown>('/api/v1/users', { params: { page: oneIndexedPage, size, sort } });
 };
 
+// Create vocabularies in batch (controller expects POST /api/v1/vocabularies/batch)
+export const callCreateVocabulariesBatch = (
+  data: Array<{
+    word: string;
+    englishMeaning: string;
+    exampleSentence?: string;
+    lessonId: string;
+  }>
+) => {
+  return axios.post<IBackendRes<unknown>>(`/api/v1/vocabularies/batch`, data);
+};
+
 export const callCreateUser = (data: unknown) => {
     return axios.post<IBackendRes<unknown>>('/api/v1/users', data);
 };
@@ -104,6 +116,8 @@ export const callCreateLesson = (lesson: {
     lessontitle: string;
     videourl: string;
     description: string;
+    vocabulary?: Array<{ word: string; englishMeaning: string; exampleSentence: string }>;
+    lessonDetail?: { gramma: string; vocab: string; phonetic: string };
 }) => {
     return axios.post<IBackendRes<ILesson>>(`/${PREFIX_API}`, lesson);
 }
@@ -112,6 +126,8 @@ export const callUpdateLesson = (id: string, lesson: {
     lessontitle: string;
     videourl: string;
     description: string;
+    vocabulary?: Array<{ word: string; englishMeaning: string; exampleSentence: string }>;
+    lessonDetail?: { gramma: string; vocab: string; phonetic: string };
 }) => {
     return axios.put<IBackendRes<ILesson>>(`/${PREFIX_API}/${id}`, lesson);
 }
@@ -119,55 +135,75 @@ export const callUpdateLesson = (id: string, lesson: {
 export const callDeleteLesson = (id: string) => {
     return axios.delete<IBackendRes<unknown>>(`/${PREFIX_API}/${id}`);
 }
+
 export const callFetchVocbulary = (lessonId: string) => {
   return axios.get<IBackendRes<IVocabulary[]>>(`/api/v1/vocabularies/lesson/${lessonId}`);
 }
+
 export const callFetchLessonDetail = (lessonId: string) => {
-  return axios.get<IBackendRes<ILessonDetail[]>>(`/api/v1/lesson-details/lesson/${lessonId}`);
+  return axios.get<IBackendRes<ILessonDetail>>(`/api/v1/lesson-details/lesson/${lessonId}`);
 }
 
+export const callCreateVocabulary = (
+  data:
+    | {
+        word: string;
+        englishMeaning: string;
+        exampleSentence: string;
+        lessonId: string;
+      }
+    | Array<{
+        word: string;
+        englishMeaning: string;
+        exampleSentence: string;
+        lessonId: string;
+      }>
+) => {
+  // If an array is passed, wrap it in an object payload the backend may expect
+  if (Array.isArray(data)) {
+    return axios.post<IBackendRes<IVocabulary | IVocabulary[]>>(
+      "/api/v1/vocabularies/batch",
+      { vocabularies: data }
+    );
+  }
 
-// // MODULE VOCABULARY
+  return axios.post<IBackendRes<IVocabulary>>("/api/v1/vocabularies", data);
+};
 
-// export const callGetAllVocabulary = () => {
-//   return axios.get<IBackendRes<IVocabulary[]>>("/api/v1/vocabularies/all");
-// };
+export const callUpdateVocabulary = (id: string, data: {
+  word?: string;
+  englishMeaning?: string;
+  exampleSentence?: string;
+  lessonId?: string;
+}) => {
+  return axios.put<IBackendRes<IVocabulary>>(`/api/v1/vocabularies/${id}`, data);
+}
 
-// export const callGetVocabularyByLesson = (lessonId: string) => {
-//   return axios.get<IBackendRes<IVocabulary[]>>(
-//     `/api/v1/vocabularies/lesson/${lessonId}`
-//   );
-// };
+export const callDeleteVocabulary = (id: string) => {
+  return axios.delete<IBackendRes<string>>(`/api/v1/vocabularies/${id}`);
+}
 
-// export const callCreateVocabulary = (data: {
-//   word: string;
-//   englishMeaning: string;
-//   exampleSentence: string;
-//   lessonId: string;
-// }) => {
-//   return axios.post<IBackendRes<IVocabulary>>("/api/v1/vocabularies", data);
-// };
+export const callCreateLessonDetail = (data: {
+  gramma: string;
+  vocab: string;
+  phonetic: string;
+  lessonId: string;
+}) => {
+  return axios.post<IBackendRes<ILessonDetail>>("/api/v1/lesson-details", data);
+}
 
-// export const callUpdateVocabulary = (
-//   id: string,
-//   data: {
-//     word?: string;
-//     englishMeaning?: string;
-//     exampleSentence?: string;
-//     lessonId?: string;
-//   }
-// ) => {
-//   return axios.put<IBackendRes<IVocabulary>>(
-//     `/api/v1/vocabularies/${id}`,
-//     data
-//   );
-// };
+export const callUpdateLessonDetail = (id: string, data: {
+  gramma?: string;
+  vocab?: string;
+  phonetic?: string;
+  lessonId?: string;
+}) => {
+  return axios.put<IBackendRes<ILessonDetail>>(`/api/v1/lesson-details/${id}`, data);
+}
 
-// export const callDeleteVocabulary = (id: string) => {
-//   return axios.delete<IBackendRes<string>>(
-//     `/api/v1/vocabularies/${id}`
-//   );
-// };
+export const callDeleteLessonDetail = (id: string) => {
+  return axios.delete<IBackendRes<string>>(`/api/v1/lesson-details/${id}`);
+}
 
 
 //MODULE CRUD POINT 

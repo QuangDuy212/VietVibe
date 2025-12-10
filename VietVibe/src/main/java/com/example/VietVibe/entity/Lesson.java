@@ -4,6 +4,8 @@ import java.security.Permission;
 import java.time.Instant;
 import java.util.List;
 
+import com.example.VietVibe.enums.GameType;
+import com.example.VietVibe.enums.LessonLevel;
 import com.example.VietVibe.util.SecurityUtil;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -40,6 +42,8 @@ public class Lesson {
     Instant updatedAt;
     String createdBy;
     String updatedBy;
+    @Enumerated(EnumType.STRING)
+    LessonLevel level;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(value = { "lessons" })

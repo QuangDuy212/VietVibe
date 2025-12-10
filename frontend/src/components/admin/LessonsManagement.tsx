@@ -7,6 +7,15 @@ import {
   callUpdateLesson,
   callDeleteLesson,
   callUploadFile,
+  callFetchVocbulary,
+  callFetchLessonDetail,
+  callUpdateLessonDetail,
+  callCreateLessonDetail,
+  callDeleteVocabulary,
+  callCreateVocabulariesBatch,
+  callCreateVocabulary,
+  callUpdateVocabulary,
+  callDeleteLessonDetail,
 } from "@/config/api";
 
 import { ILesson, IPaginationRes } from "@/types/common.type";
@@ -71,10 +80,11 @@ import {
   ChevronsRight,
   Eye,
   FileText,
-  Upload, Video, X
+  Upload, Video, X,
 } from "lucide-react";
-
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import Lesson from "@/pages/Lesson";
 
 interface Vocabulary {
   id: string;
@@ -82,30 +92,11 @@ interface Vocabulary {
   meaning: string;
   example: string;
 }
-
-const FAKE_VOCAB: Record<string, Vocabulary[]> = {
-  "1": [
-    {
-      id: "1",
-      word: "Hello",
-      meaning: "Xin chào",
-      example: "Hello, nice to meet you!",
-    },
-    { id: "2", word: "Name", meaning: "Tên", example: "My name is Anna." },
-  ],
+const levelColors = {
+  BEGINNER: "bg-secondary/10 text-secondary hover:bg-secondary/20",
+  INTERMEDIATE: "bg-accent/10 text-accent hover:bg-accent/20",
+  ADVANCE: "bg-primary/10 text-primary hover:bg-primary/20",
 };
-
-const FAKE_CONTENT: Record<
-  string,
-  { grammar: string; vocab: string; phonetic: string }
-> = {
-  "1": {
-    grammar: "Câu giới thiệu: My name is + [tên]\nI am + [tuổi] years old.",
-    vocab: "- Hello: xin chào\n- Name: tên\n- Nice: vui, tốt",
-    phonetic: "hello /həˈloʊ/\nname /neɪm/",
-  },
-};
-
 const LessonsManagement = () => {
   const [lessons, setLessons] = useState<ILesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,12 +112,15 @@ const LessonsManagement = () => {
     lessontitle: "",
     videourl: "",
     description: "",
+    level: "",
   });
 
   const [activeTab, setActiveTab] = useState("info");
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
+  const [lessonDetailId, setLessonDetailId] = useState<string | null>(null);
+  const [removedVocabIds, setRemovedVocabIds] = useState<string[]>([]);
 
-  // Nội dung: grammar, vocab, phonetic
+  // Content: grammar, vocab, phonetic
   const [grammar, setGrammar] = useState("");
   const [vocab, setVocab] = useState("");
   const [phonetic, setPhonetic] = useState("");
@@ -151,7 +145,7 @@ const LessonsManagement = () => {
         setTotalLessons(data.meta?.total || 0);
       }
     } catch (error) {
-      toast.error("Không tải được danh sách bài học");
+      toast.error("Failed to fetch lesson list");
     } finally {
       setLoading(false);
     }
@@ -164,18 +158,44 @@ const LessonsManagement = () => {
         lessontitle: lesson.lessontitle,
         videourl: lesson.videourl || "",
         description: lesson.description || "",
+        level: lesson.level || "",
       });
-      setVocabularies(FAKE_VOCAB[lesson._id] || []);
 
-      // Load content
-      const content = FAKE_CONTENT[lesson._id] || {
-        grammar: "",
-        vocab: "",
-        phonetic: "",
+      // Fetch vocabulary and lesson details from API
+      const fetchLessonData = async () => {
+        try {
+          const [vocabRes, detailRes] = await Promise.all([
+            callFetchVocbulary(lesson._id),
+            callFetchLessonDetail(lesson._id),
+          ]);
+
+          // Transform vocabulary data
+          const vocabData = vocabRes?.data || [];
+          const transformedVocab: Vocabulary[] = (Array.isArray(vocabData) ? vocabData : [])
+            .map((item: any) => ({
+              id: item._id || `vocab-${Date.now()}`,
+              word: item.word,
+              meaning: item.englishMeaning,
+              example: item.exampleSentence,
+            }));
+          setVocabularies(transformedVocab);
+
+          // Load lesson details
+          const detailData = detailRes?.data || {};
+          setGrammar(detailData.gramma || "");
+          setVocab(detailData.vocab || "");
+          setPhonetic(detailData.phonetic || "");
+          setLessonDetailId(detailData._id || null);
+        } catch (error) {
+          console.error("Error fetching lesson data:", error);
+          setVocabularies([]);
+          setGrammar("");
+          setVocab("");
+          setPhonetic("");
+        }
       };
-      setGrammar(content.grammar);
-      setVocab(content.vocab);
-      setPhonetic(content.phonetic);
+
+      fetchLessonData();
     } else {
       setEditingLesson(null);
       setFormData({ lessontitle: "", videourl: "", description: "" });
@@ -203,48 +223,211 @@ const LessonsManagement = () => {
   };
 
   const deleteVocab = (id: string) => {
-    setVocabularies(vocabularies.filter((v) => v.id !== id));
+    // If it's a newly created local vocab, just remove it from the UI state
+    if (id.startsWith("new-")) {
+      setVocabularies((prev) => prev.filter((v) => v.id !== id));
+      return;
+    }
+
+    // For existing vocab, record its id for deletion on save and remove from UI
+    setRemovedVocabIds((prev) => [...prev, id]);
+    setVocabularies((prev) => prev.filter((v) => v.id !== id));
   };
 
   const handleSave = async () => {
     if (!formData.lessontitle.trim()) {
-      toast.error("Vui lòng nhập tiêu đề bài học");
+      toast.error("Please enter a lesson title");
       return;
     }
 
     try {
-      const dataToSave = {
-        ...formData,
-        vocabularies,
-        grammar,
-        vocab,
-        phonetic,
+      // Prepare basic lesson payload
+      const lessonPayload = {
+        lessontitle: formData.lessontitle,
+        videourl: formData.videourl,
+        description: formData.description,
+        level: formData.level,
       };
       let videoUrl = formData.video_url;
 
       // Upload video if a file is selected
       if (videoFile) {
         const uploadedUrl = await uploadVideo(videoFile);
+        console.log(">>>>>>> check uploadedUrl: ", uploadedUrl)
         if (uploadedUrl) {
-          videoUrl = uploadedUrl;
+          lessonPayload.videourl = uploadedUrl;
+          console.log(">>>>> check edding lesstion", editingLesson)
         } else {
           return; // Stop if upload failed
         }
       }
-      dataToSave.videourl = videoUrl;
-
       if (editingLesson) {
-        await callUpdateLesson(editingLesson._id, dataToSave);
-        toast.success("Lưu thay đổi thành công!");
+        // Update lesson basic info
+        const updateRes = await callUpdateLesson(editingLesson._id, lessonPayload);
+        console.log('updateLesson response:', updateRes);
+
+        // Upsert lesson detail
+        if (lessonDetailId) {
+          try {
+            const updDetailRes = await callUpdateLessonDetail(lessonDetailId, {
+              gramma: grammar,
+              vocab,
+              phonetic,
+              lessonId: editingLesson._id,
+            });
+            console.log('updateLessonDetail response:', updDetailRes);
+          } catch (e) {
+            console.error('Failed to update lesson detail', e);
+            toast.error('Failed to update lesson content');
+          }
+        } else {
+          try {
+            const createDetailRes = await callCreateLessonDetail({
+              gramma: grammar,
+              vocab,
+              phonetic,
+              lessonId: editingLesson._id,
+            });
+            console.log('createLessonDetail response:', createDetailRes);
+            const created = createDetailRes?.data?.data;
+            if (created && created._id) setLessonDetailId(created._id);
+          } catch (e) {
+            console.error('Failed to create lesson detail', e);
+            toast.error('Failed to save lesson content');
+          }
+        }
+
+        // Delete removed vocabularies
+        for (const vid of removedVocabIds) {
+          try {
+            const delRes = await callDeleteVocabulary(vid);
+            console.log('deleteVocabulary response for', vid, delRes);
+          } catch (e) {
+            console.warn("Failed to delete vocab", vid, e);
+            toast.error(`Failed to delete vocabulary ${vid}`);
+          }
+        }
+
+        // Create new vocabularies in batch if exist
+        const newVocs = vocabularies
+          .filter((v) => v.id.startsWith("new-"))
+          .map((v) => ({
+            word: v.word,
+            englishMeaning: v.meaning,
+            exampleSentence: v.example,
+            lessonId: editingLesson._id,
+          }));
+
+        if (newVocs.length) {
+          const validNewVocs = newVocs.filter((v) => v.word && v.englishMeaning);
+          try {
+            const batchRes = await callCreateVocabulariesBatch(validNewVocs);
+            console.log('createVocabulariesBatch response for new items:', batchRes);
+          } catch (e) {
+            console.error('Failed to create new vocabularies batch', e);
+            // fallback to per-item creates
+            for (const nv of validNewVocs) {
+              try {
+                const resV = await callCreateVocabulary(nv);
+                console.log('createVocabulary response for new item:', resV);
+              } catch (err) {
+                console.error('Failed to create vocab item', nv, err);
+              }
+            }
+            toast.error('Failed to create some new vocabulary items');
+          }
+        }
+
+        // Update existing vocabularies
+        const existingVocs = vocabularies.filter((v) => !v.id.startsWith("new-"));
+        for (const v of existingVocs) {
+          try {
+            const updVRes = await callUpdateVocabulary(v.id, {
+              word: v.word,
+              englishMeaning: v.meaning,
+              exampleSentence: v.example,
+              lessonId: editingLesson._id,
+            });
+            console.log('updateVocabulary response for', v.id, updVRes);
+          } catch (e) {
+            console.warn("Failed to update vocab", v.id, e);
+            toast.error(`Failed to update word ${v.word}`);
+          }
+        }
+
+        toast.success("Changes saved successfully!");
       } else {
-        await callCreateLesson(dataToSave);
-        toast.success("Tạo bài học thành công!");
+        // Create new lesson
+        const res = await callCreateLesson(lessonPayload as any);
+        console.log(">>>>>> check res: ", res);
+        // handle different possible response shapes
+        const createdLesson = (res?.data?.data ?? res?.data) as ILesson | any | undefined;
+        const lessonId = createdLesson?._id || createdLesson?.id || createdLesson?.lessonId;
+
+        if (lessonId) {
+          // Create lesson detail
+          try {
+            const detailRes = await callCreateLessonDetail({
+              gramma: grammar,
+              vocab,
+              phonetic,
+              lessonId,
+            });
+            console.log("createLessonDetail response:", detailRes);
+            const createdDetail = detailRes?.data?.data ?? detailRes?.data;
+            const createdDetailId = createdDetail?._id || createdDetail?.id;
+            if (createdDetailId) {
+              setLessonDetailId(createdDetailId);
+            }
+          } catch (e) {
+            console.error("Failed to create lesson detail", e);
+            toast.error("Failed to save lesson content");
+          }
+
+          // Create vocabularies in batch - filter out empty entries
+          const validVocs = vocabularies
+            .filter((v) => v.word.trim() && v.meaning.trim())
+            .map((v) => ({
+              word: v.word,
+              englishMeaning: v.meaning,
+              exampleSentence: v.example,
+              lessonId,
+            }));
+
+          console.log('validVocs to create (batch):', validVocs);
+
+          if (validVocs.length) {
+            try {
+              const batchRes = await callCreateVocabulariesBatch(validVocs);
+              console.log('createVocabulariesBatch response:', batchRes);
+            } catch (e) {
+              console.error('Failed to create vocabularies batch', e);
+              // fallback: try creating individually
+              for (const vv of validVocs) {
+                try {
+                  const resV = await callCreateVocabulary(vv);
+                  console.log('createVocabulary response for', vv, resV);
+                } catch (err) {
+                  console.error('Failed to create vocab', vv, err);
+                }
+              }
+              toast.error('Failed to create some vocabulary items');
+            }
+          } else {
+            console.log('No valid vocabularies to create (all empty)');
+          }
+        }
+
+        toast.success("Lesson created successfully!");
       }
 
+      // Cleanup and refresh
+      setRemovedVocabIds([]);
+      setLessonDetailId(null);
       setDialogOpen(false);
       fetchLessons();
     } catch (error) {
-      toast.error("Có lỗi xảy ra!");
+      toast.error("An error occurred!");
     }
   };
 
@@ -252,11 +435,11 @@ const LessonsManagement = () => {
     if (!deleteId) return;
     try {
       await callDeleteLesson(deleteId);
-      toast.success("Xóa bài học thành công!");
+      toast.success("Lesson successfully deleted!");
       setDeleteId(null);
       fetchLessons();
     } catch (error) {
-      toast.error("Không thể xóa bài học");
+      toast.error("Failed to delete lesson");
     }
   };
 
@@ -273,7 +456,7 @@ const LessonsManagement = () => {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
@@ -327,7 +510,7 @@ const LessonsManagement = () => {
     return (
       <Card>
         <CardContent className="p-8 text-center text-muted-foreground">
-          Đang tải...
+          Loading...
         </CardContent>
       </Card>
     );
@@ -335,7 +518,7 @@ const LessonsManagement = () => {
 
   return (
     <>
-      {/* BẢNG CHÍNH */}
+      {/* MAIN TABLE */}
       <Card className="border-0 shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -365,6 +548,7 @@ const LessonsManagement = () => {
                   <TableHead>Video URL</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Created Info</TableHead>
+                  <TableHead>Level</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -393,6 +577,11 @@ const LessonsManagement = () => {
                             : "N/A"}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+
+                      <Badge className={levelColors[lesson.level]}>{lesson.level}</Badge>
+
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
@@ -425,10 +614,10 @@ const LessonsManagement = () => {
             </Table>
           </div>
 
-          {/* PHÂN TRANG */}
+          {/* PAGINATION */}
           <div className="flex items-center justify-between mt-6">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Hiển thị</span>
+              <span className="text-sm text-muted-foreground">Show</span>
               <Select
                 value={pageSize.toString()}
                 onValueChange={(v) => setPageSize(Number(v))}
@@ -444,7 +633,7 @@ const LessonsManagement = () => {
                 </SelectContent>
               </Select>
               <span className="text-sm text-muted-foreground">
-                trên tổng {totalLessons}
+                of total {totalLessons}
               </span>
             </div>
 
@@ -466,7 +655,7 @@ const LessonsManagement = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm px-4">
-                Trang {page} / {totalPages || 1}
+                Page {page} / {totalPages || 1}
               </span>
               <Button
                 variant="outline"
@@ -489,17 +678,17 @@ const LessonsManagement = () => {
         </CardContent>
       </Card>
 
-      {/* DIALOG VỚI 3 TABS */}
+      {/* DIALOG WITH 3 TABS */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">
-              {editingLesson ? "Chỉnh sửa bài học" : "Tạo bài học mới"}
+              {editingLesson ? "Edit Lesson" : "Create New Lesson"}
             </DialogTitle>
             <DialogDescription>
               {editingLesson
-                ? "Xem và chỉnh sửa thông tin bài học"
-                : "Nhập thông tin bài học"}
+                ? "View and edit lesson information"
+                : "Enter lesson information"}
             </DialogDescription>
           </DialogHeader>
 
@@ -509,41 +698,70 @@ const LessonsManagement = () => {
                 value="info"
                 className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
               >
-                Thông tin
+                Information
               </TabsTrigger>
               <TabsTrigger
                 value="vocabulary"
                 className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
               >
-                Từ vựng ({vocabularies.length})
+                Vocabulary ({vocabularies.length})
               </TabsTrigger>
               <TabsTrigger
                 value="content"
                 className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
               >
-                Nội dung
+                Content
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: THÔNG TIN */}
+            {/* TAB 1: INFORMATION */}
             <TabsContent value="info" className="space-y-6 pt-8">
-              <div>
-                <Label className="text-base">Tiêu đề bài học *</Label>
-                <Input
-                  className="mt-2 text-lg"
-                  value={formData.lessontitle}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lessontitle: e.target.value })
-                  }
-                  placeholder="VD: Unit 1 - Greetings"
-                />
-              </div>
+              <div className="flex gap-4">
+  {/* Cột 1: Level */}
+  <div className="flex-1">
+    <Label>Level*</Label>
+    <Select
+      value={formData.level}
+      onValueChange={(e) =>
+        setFormData({ ...formData, level: e })
+      }
+    >
+      <SelectTrigger className="mt-2">
+        <SelectValue placeholder="Choose lesson level" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="BEGINNER">
+          Beginner
+        </SelectItem>
+        <SelectItem value="INTERMEDIATE">
+          Intermediate
+        </SelectItem>
+        <SelectItem value="ADVANCE">
+          Advance
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {/* Cột 2: Lesson Title */}
+  <div className="flex-1">
+    <Label className="text-base">Lesson Title *</Label>
+    <Input
+      className="mt-2 text-lg"
+      value={formData.lessontitle}
+      onChange={(e) =>
+        setFormData({ ...formData, lessontitle: e.target.value })
+      }
+      placeholder="E.g.: Unit 1 - Greetings"
+    />
+  </div>
+</div>
               <div>
                 <Label>Video</Label>
                 <div
                   className={`relative mt-2 border-2 border-dashed rounded-lg transition-all duration-200 ${isDragging
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50 hover:bg-muted/30"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50 hover:bg-muted/30"
                     } ${videoFile || formData.video_url ? "p-4" : "p-8"}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -629,35 +847,35 @@ const LessonsManagement = () => {
                 </div>
               </div>
               <div>
-                <Label className="text-base">Mô tả ngắn</Label>
+                <Label className="text-base">Short Description</Label>
                 <Textarea
                   className="mt-2 min-h-32"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Học cách chào hỏi và giới thiệu bản thân"
+                  placeholder="Learn how to greet and introduce yourself"
                 />
               </div>
             </TabsContent>
 
-            {/* TAB 2: TỪ VỰNG */}
+            {/* TAB 2: VOCABULARY */}
             <TabsContent value="vocabulary" className="pt-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold">Danh sách từ vựng</h3>
+                <h3 className="text-lg font-semibold">Vocabulary List</h3>
                 <Button
                   onClick={addVocabulary}
                   className="bg-red-500 hover:bg-red-600 text-white"
                 >
                   <Plus className="h-5 w-5 mr-2" />
-                  Thêm từ mới
+                  Add New Word
                 </Button>
               </div>
 
               <div className="space-y-4">
                 {vocabularies.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
-                    Chưa có từ vựng nào. Nhấn nút trên để thêm!
+                    No vocabulary yet. Click the button above to add some!
                   </div>
                 ) : (
                   vocabularies.map((v) => (
@@ -667,7 +885,7 @@ const LessonsManagement = () => {
                         onChange={(e) =>
                           updateVocab(v.id, "word", e.target.value)
                         }
-                        placeholder="Từ"
+                        placeholder="Word"
                         className="font-medium"
                       />
                       <Input
@@ -675,21 +893,29 @@ const LessonsManagement = () => {
                         onChange={(e) =>
                           updateVocab(v.id, "meaning", e.target.value)
                         }
-                        placeholder="Nghĩa"
+                        placeholder="Meaning"
                       />
                       <Input
                         value={v.example}
                         onChange={(e) =>
                           updateVocab(v.id, "example", e.target.value)
                         }
-                        placeholder="Ví dụ"
+                        placeholder="Example"
                       />
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="destructive"
-                        onClick={() => deleteVocab(v.id)}
+                        onClick={() => {
+                          const message = v.id.startsWith("new-")
+                            ? "Remove this word from the list?"
+                            : "Are you sure you want to delete this word? (will be deleted on server when saving)";
+                          if (window.confirm(message)) {
+                            deleteVocab(v.id);
+                          }
+                        }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
                       </Button>
                     </div>
                   ))
@@ -697,22 +923,51 @@ const LessonsManagement = () => {
               </div>
             </TabsContent>
 
-            {/* TAB 3: NỘI DUNG (Grammar, Vocab, Phonetic) */}
+            {/* TAB 3: CONTENT (Grammar, Vocab, Phonetic) */}
             <TabsContent value="content" className="space-y-6 pt-6">
               <div>
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Ngữ pháp (Grammar)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Grammar
+                  </Label>
+                  {lessonDetailId ? (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={async () => {
+                        if (!lessonDetailId) return;
+                        const ok = window.confirm(
+                          "Are you sure you want to delete this lesson content?"
+                        );
+                        if (!ok) return;
+                        try {
+                          await callDeleteLessonDetail(lessonDetailId);
+                          setLessonDetailId(null);
+                          setGrammar("");
+                          setVocab("");
+                          setPhonetic("");
+                          toast.success("Lesson content successfully deleted");
+                        } catch (e) {
+                          console.error("Failed to delete lesson detail", e);
+                          toast.error("Failed to delete lesson content");
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Content
+                    </Button>
+                  ) : null}
+                </div>
                 <Textarea
                   value={grammar}
                   onChange={(e) => setGrammar(e.target.value)}
-                  placeholder="Viết ghi chú ngữ pháp...
+                  placeholder="Write grammar notes...
 
 Ví dụ:
 - Câu giới thiệu: My name is + [tên]
 - Câu hỏi: What is your name?
-- Cấu trúc: I am + [tuổi] years old"
+- Cấu trúc: I am + [tuổi] years old" // Keeping Vietnamese examples for context
                   className="mt-2 min-h-48 text-base leading-relaxed"
                 />
               </div>
@@ -720,30 +975,30 @@ Ví dụ:
               <div>
                 <Label className="text-base font-semibold flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
-                  Từ vựng (Vocab)
+                  Vocabulary
                 </Label>
                 <Textarea
                   value={vocab}
                   onChange={(e) => setVocab(e.target.value)}
-                  placeholder="Viết nội dung từ vựng...
+                  placeholder="Write vocabulary content...
 
 Ví dụ:
 - Hello: xin chào
 - Name: tên
 - Nice: vui, tốt
-- Meet: gặp"
+- Meet: gặp" // Keeping Vietnamese examples for context
                   className="mt-2 min-h-48 text-base leading-relaxed"
                 />
               </div>
 
               <div>
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  🔊 Phát âm (Phonetic)
+                  🔊 Phonetic
                 </Label>
                 <Textarea
                   value={phonetic}
                   onChange={(e) => setPhonetic(e.target.value)}
-                  placeholder="Viết ghi chú phát âm...
+                  placeholder="Write phonetic notes...
 
 Ví dụ:
 - hello /həˈloʊ/
@@ -763,36 +1018,35 @@ Lưu ý: Chú ý phát âm âm 'th' trong thank"
               size="lg"
               onClick={() => setDialogOpen(false)}
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               size="lg"
               className="bg-red-500 hover:bg-red-600 text-white"
               onClick={handleSave}
             >
-              {editingLesson ? "Lưu thay đổi" : "Tạo bài học"}
+              {editingLesson ? "Save Changes" : "Create Lesson"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ALERT XÓA */}
+      {/* DELETE ALERT */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa bài học này? Hành động này không thể
-              hoàn tác.
+              Are you sure you want to delete this lesson? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Xóa
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

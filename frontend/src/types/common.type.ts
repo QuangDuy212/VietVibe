@@ -132,6 +132,7 @@ export interface ILesson {
   lessontitle: string;
   videourl: string;
   description: string;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCE";
   vocabulary?: IVocabulary[];
   lessonDetail?: ILessonDetail | null;
   createdAt?: string;

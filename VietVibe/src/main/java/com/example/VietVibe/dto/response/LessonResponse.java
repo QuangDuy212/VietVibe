@@ -2,6 +2,7 @@ package com.example.VietVibe.dto.response;
 
 import java.time.Instant;
 
+import com.example.VietVibe.enums.LessonLevel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AccessLevel;
@@ -22,6 +23,7 @@ public class LessonResponse {
     String lessontitle;
     String videourl;
     String description;
+    LessonLevel level;
     Instant createdAt;
     Instant updatedAt;
     String createdBy;
