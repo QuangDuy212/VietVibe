@@ -46,7 +46,7 @@ const LessonDetail = () => {
 
         // Fetch lesson details and vocabulary for sections data
         // Handle lesson details gracefully if not found
-        let detailData = {};
+        let detailData: any = {};
         try {
           const detailRes = await callFetchLessonDetail(id);
           detailData = detailRes?.data || {};
@@ -60,28 +60,26 @@ const LessonDetail = () => {
         const vocabRes = await callFetchVocbulary(id);
         
         // Ensure detailData is correctly extracted from the API response
-        // If detailData is empty, fallback to "Không có dữ liệu"
+        // If detailData is empty, fallback to "No data available"
 
         const sections = [
           {
             id: 1,
-            title: "Ngữ pháp",
+            title: "Grammar",
             progressThreshold: 33,
-            content: detailData.gramma || "Không có dữ liệu", // Ensure fallback value
+            content: detailData.gramma || "No data available",
           },
           {
             id: 2,
-            title: "Từ vựng",
-            
+            title: "Vocabulary",
             progressThreshold: 66,
-            content: detailData.vocab || "Không có dữ liệu", // Ensure fallback value
+            content: detailData.vocab || "No data available",
           },
           {
             id: 3,
-            title: "Ngữ âm",
-            
+            title: "Phonetics",
             progressThreshold: 100,
-            content: detailData.phonetic || "Không có dữ liệu", // Ensure fallback value
+            content: detailData.phonetic || "No data available",
           },
         ];
 
@@ -89,10 +87,10 @@ const LessonDetail = () => {
         // No need to filter - API already returns data for this lesson only
         const allVocab = vocabRes?.data || [];
         const simplifiedVocabulary = (Array.isArray(allVocab) ? allVocab : [])
-          .map(item => ({
+          .map((item: any) => ({
             word: item.word,
             meaning: item.englishMeaning,
-            example: item.exampleSentence || "Không có ví dụ",
+            example: item.exampleSentence || "No example sentence",
           }));
 
         // Calculate section completion based on current progress
@@ -152,7 +150,7 @@ const LessonDetail = () => {
           onClick={() => navigate("/lesson")}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại
+          Go Back
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -171,11 +169,11 @@ const LessonDetail = () => {
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span className="text-sm">15 phút</span>
+                    <span className="text-sm">15 minutes</span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Tiến độ</span>
+                      <span className="text-sm font-medium">Progress</span>
                       <span className="text-sm">{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
@@ -209,7 +207,7 @@ const LessonDetail = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Từ vựng trong bài</CardTitle>
+                <CardTitle>Vocabularies in Lesson</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {currentLesson.simplifiedVocabulary?.length > 0 ? (
@@ -222,12 +220,12 @@ const LessonDetail = () => {
                         </div>
                       </div>
                       <p className="text-sm italic mt-2">
-                        Ví dụ: <span className="font-medium">{item.example}</span>
+                        Example: <span className="font-medium">{item.example}</span>
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-muted-foreground">Không tìm thấy từ vựng cho bài học này.</p>
+                  <p className="text-muted-foreground">No vocabulary found for this lesson.</p>
                 )}
               </CardContent>
             </Card>
@@ -237,7 +235,7 @@ const LessonDetail = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Nội dung bài học</CardTitle>
+                <CardTitle>Lesson Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {currentLesson.sections?.map((section) => (
@@ -263,12 +261,12 @@ const LessonDetail = () => {
             <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-0">
               <CardContent className="p-6 text-center">
                 <h3 className="font-semibold mb-2">
-                  {progress === 100 ? "Hoàn thành!" : "Hoàn thành bài học"}
+                  {progress === 100 ? "Completed!" : "Complete the Lesson"}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {progress === 100
-                    ? "Bạn đã hoàn thành bài học này!"
-                    : "Làm quiz để kiểm tra kiến thức"
+                    ? "You have completed this lesson!"
+                    : "Take a quiz to test your knowledge"
                   }
                 </p>
                 <Button
@@ -277,7 +275,7 @@ const LessonDetail = () => {
                   onClick={progress === 100 ? undefined : handleCompleteLesson}
                   disabled={progress === 100}
                 >
-                  {progress === 100 ? "Đã hoàn thành" : "Làm bài kiểm tra"}
+                  {progress === 100 ? "Completed" : "Take the Quiz"}
                 </Button>
               </CardContent>
             </Card>
@@ -289,7 +287,3 @@ const LessonDetail = () => {
 };
 
 export default LessonDetail;
-
-
-
-
