@@ -1,7 +1,5 @@
 package com.example.VietVibe.dto.request;
 
-import com.example.VietVibe.enums.LessonLevel;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,5 +16,4 @@ public class LessonUpdateRequest {
     String lessontitle;
     String videourl;
     String description;
-    LessonLevel level;
 }

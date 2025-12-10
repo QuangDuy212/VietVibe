@@ -58,5 +58,4 @@ VietVibe_Frontend/*.local
 *.sw?
 package-lock.json
 node_modules/
-/upload
 frontend/package-lock.json
