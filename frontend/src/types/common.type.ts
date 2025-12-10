@@ -58,7 +58,34 @@ export interface IGame {
     description: string;
     type: "MULTIPLE_CHOICE" | "SENTENCE_ORDER" | "LISTENING_CHOICE";
     questions: IQuestion[];
+export interface PointResponse {
+    id: number;
+    score: number;
+    bonus: number;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    totalScore?: number;
+    createdAt?: string;
+    userId?: string;
+    userName?: string;
+    gameId?: number;
+    gameName?: string;
 }
+
+export interface IPointUpdateRequest {
+    score?: number;
+    bonus?: number;
+}
+
+export interface IPointSearchRequest {
+    keyword?: string;
+    username?: string;
+    gameName?: string;
+    minScore?: number;
+    maxScore?: number;
+}
+
+
 
 export interface IPaginationMeta {
     current: number;
