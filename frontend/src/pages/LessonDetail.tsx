@@ -8,17 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, CheckCircle2, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { 
+import {
   ILesson,
   ICurrentLesson
-} from '@/types/common.type'; 
-import { callFetchLessonsPaginated, callFetchLessonDetail, callFetchVocbulary } from "@/config/api"; 
+} from '@/types/common.type';
+import { callFetchLessonsPaginated, callFetchLessonDetail, callFetchVocbulary } from "@/config/api";
 
 
 const LessonDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const [currentLesson, setCurrentLesson] = useState<ICurrentLesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -27,14 +27,14 @@ const LessonDetail = () => {
   useEffect(() => {
     const fetchLessonData = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
         // Fetch paginated lessons to get current lesson with embedded vocabulary & details
         const lessonRes = await callFetchLessonsPaginated(1, 100);
         const lessons: ILesson[] = lessonRes?.data?.result || [];
         const foundLesson = lessons.find(l => l._id === id);
-        
+
         if (!foundLesson) {
           setLoading(false);
           return;
@@ -45,7 +45,7 @@ const LessonDetail = () => {
           callFetchLessonDetail(id),
           callFetchVocbulary(id),
         ]);
-        
+
         // Ensure detailData is correctly extracted from the API response
         const detailData = detailRes?.data || {}; // Adjusted to match the API response structure
 
@@ -72,26 +72,26 @@ const LessonDetail = () => {
             content: detailData.phonetic || "Không có dữ liệu", // Ensure fallback value
           },
         ];
-        
+
         // Transform vocabulary from API response to simplified format for display
         // No need to filter - API already returns data for this lesson only
         const allVocab = vocabRes?.data || [];
         const simplifiedVocabulary = (Array.isArray(allVocab) ? allVocab : [])
           .map(item => ({
             word: item.word,
-            meaning: item.englishMeaning, 
+            meaning: item.englishMeaning,
             example: item.exampleSentence || "Không có ví dụ",
           }));
-        
+
         // Calculate section completion based on current progress
         const sectionsWithCompletion = sections.map(section => ({
           ...section,
           completed: (progress || 0) >= section.progressThreshold,
         }));
-        
+
         // Set combined lesson data
         setCurrentLesson({
-          ...foundLesson, 
+          ...foundLesson,
           sections: sectionsWithCompletion,
           simplifiedVocabulary,
           details: null,
@@ -121,19 +121,21 @@ const LessonDetail = () => {
   if (loading || !currentLesson) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">Loading lesson...</div>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4"></div>
+          <div className="text-center text-muted-foreground">Loading lesson...</div>
+        </div>
       </div>
     );
   }
-
   // JSX/Rendering
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container px-4 py-8">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="mb-6"
           onClick={() => navigate("/lesson")}
         >
@@ -153,7 +155,7 @@ const LessonDetail = () => {
                   </div>
                   <Badge className="bg-primary/20 text-primary border-0">Beginner</Badge>
                 </div>
-                
+
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
@@ -173,19 +175,16 @@ const LessonDetail = () => {
             <Card>
               <CardContent className="p-0">
                 <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={currentLesson.videourl}
-                    title={currentLesson.lessontitle}
-                    allowFullScreen
-                    className="w-full h-full"
+                  <video
+                    src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/storage/video/${currentLesson?.videourl}`}
+                    controls
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="p-6">
-                  <Button 
-                    variant="default" 
-                    size="lg" 
+                  <Button
+                    variant="default"
+                    size="lg"
                     className="w-full"
                     onClick={handleContinueLesson}
                   >
@@ -255,13 +254,13 @@ const LessonDetail = () => {
                   {progress === 100 ? "Hoàn thành!" : "Hoàn thành bài học"}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {progress === 100 
-                    ? "Bạn đã hoàn thành bài học này!" 
+                  {progress === 100
+                    ? "Bạn đã hoàn thành bài học này!"
                     : "Làm quiz để kiểm tra kiến thức"
                   }
                 </p>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   className="w-full"
                   onClick={progress === 100 ? undefined : handleCompleteLesson}
                   disabled={progress === 100}

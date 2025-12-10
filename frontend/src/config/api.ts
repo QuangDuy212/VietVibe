@@ -189,3 +189,19 @@ export const callSearchPoints = (data: unknown, page = 0, size = 10, sort?: stri
     return axios.post<unknown>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
 };
 
+//MODULE FILE UPLOAD
+export const callUploadFile = (file: unknown, folderType: string) => {
+  const bodyFormData = new FormData();
+  //@ts-expect-error
+  bodyFormData.append('file', file);
+  bodyFormData.append('folder', folderType);
+
+  return axios<IBackendRes<{ fileName: string }>>({
+      method: 'post',
+      url: '/api/v1/files',
+      data: bodyFormData,
+      headers: {
+          "Content-Type": "multipart/form-data",
+      },
+  });
+}

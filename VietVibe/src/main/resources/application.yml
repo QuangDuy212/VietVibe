@@ -9,8 +9,8 @@ spring:
         one-indexed-parameters: true
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: 2048MB
+      max-request-size: 2048MB
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3308/VietVibe?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -30,3 +30,6 @@ auth:
     base64-secret-fresh: Io0JORP+HAY9pQBkr/YRK1FA1CpJpz3tGjNrAO6Edjgod+QbUSjrcu6aeFH3vH+KM1So3rjTdAm66fXQGWNL4A==
     access-token-validity-in-seconds: 8640000
     refresh-token-validity-in-seconds: 8640000
+upload:
+  file:
+    uri: file:///E:/Project/VietVibe/upload/

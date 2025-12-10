@@ -20,7 +20,7 @@ const Header = () => {
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [user]);
 
   const checkAuthStatus = async () => {
     if (user && user._id) {
