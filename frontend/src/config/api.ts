@@ -60,10 +60,14 @@ export const callSearchUsers = (data: unknown, page = 0, size = 10, sort?: strin
 }
 // MODULE GAME
 
-// Lấy list game (có phân trang)
-export const callGetGames = (page = 1, size = 20) => {
-  return axios.get<IBackendRes<IPaginationRes<IGame>>>('/api/v1/games', {
-    params: { page, size },
+// Lấy list game (phân trang + filter BE)
+export const callGetGames = (page = 1, size = 20, filter?: string) => {
+  return axios.get<IBackendRes<IPaginationRes<IGame>>>("/api/v1/games", {
+    params: {
+      page,
+      size,
+      ...(filter ? { filter } : {}),
+    },
   });
 };
 
