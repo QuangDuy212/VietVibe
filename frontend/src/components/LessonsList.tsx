@@ -1,78 +1,47 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import LessonCard from "./LessonCard";
-
-const lessonsData = [
-  {
-    id: 1,
-    title: "Basic Greetings",
-    description: "Learn essential greetings and polite expressions in Vietnamese",
-    level: "beginner" as const,
-    duration: "15 min",
-    progress: 75,
-  },
-  {
-    id: 2,
-    title: "Family Members",
-    description: "Vocabulary for family relationships and how to introduce your family",
-    level: "beginner" as const,
-    duration: "20 min",
-    progress: 30,
-  },
-  {
-    id: 3,
-    title: "Food & Drinks",
-    description: "Common food and beverage vocabulary for ordering at restaurants",
-    level: "beginner" as const,
-    duration: "25 min",
-  },
-  {
-    id: 4,
-    title: "Numbers & Counting",
-    description: "Master Vietnamese numbers and learn to count, tell time, and prices",
-    level: "beginner" as const,
-    duration: "18 min",
-  },
-  {
-    id: 5,
-    title: "Daily Routines",
-    description: "Describe your daily activities and understand time expressions",
-    level: "intermediate" as const,
-    duration: "30 min",
-  },
-  {
-    id: 6,
-    title: "Shopping & Bargaining",
-    description: "Learn vocabulary and phrases for shopping at markets and stores",
-    level: "intermediate" as const,
-    duration: "28 min",
-  },
-  {
-    id: 7,
-    title: "Vietnamese Idioms",
-    description: "Explore common Vietnamese idioms and their cultural meanings",
-    level: "advanced" as const,
-    duration: "35 min",
-  },
-  {
-    id: 8,
-    title: "Business Vietnamese",
-    description: "Professional vocabulary and expressions for workplace communication",
-    level: "advanced" as const,
-    duration: "40 min",
-  },
-];
+import { useLessons } from "@/hooks/useLessons";
+import { Button } from "@/components/ui/button";
 
 const LessonsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
+  
+  // Sử dụng hook để fetch data từ API
+  const { 
+    lessons, 
+    loading, 
+    error,
+    page,
+    totalPages,
+    hasNext,
+    hasPrev,
+    nextPage,
+    prevPage,
+    goFirst,
+    goLast
+  } = useLessons(8); // 8 lessons per page để hiển thị grid 4 cột x 2 hàng
 
-  const filteredLessons = lessonsData.filter((lesson) => {
-    const matchesSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLevel = levelFilter === "all" || lesson.level === levelFilter;
+  // Lọc lessons theo search và level
+  const filteredLessons = lessons.filter((lesson) => {
+    const matchesSearch = 
+      lesson.lessontitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Map level từ progress/locked status
+    let lessonLevel = "beginner";
+    if (lesson.locked) {
+      lessonLevel = lesson.exercises > 18 ? "advanced" : "intermediate";
+    } else if (lesson.completed) {
+      lessonLevel = "beginner";
+    } else {
+      lessonLevel = "intermediate";
+    }
+    
+    const matchesLevel = levelFilter === "all" || lessonLevel === levelFilter;
     return matchesSearch && matchesLevel;
   });
 
@@ -111,16 +80,99 @@ const LessonsList = () => {
           </Select>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredLessons.map((lesson) => (
-            <LessonCard key={lesson.id} {...lesson} />
-          ))}
-        </div>
-
-        {filteredLessons.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">No lessons found. Try a different search term or filter.</p>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading lessons...</span>
           </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-16">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        )}
+
+        {/* Lessons Grid */}
+        {!loading && !error && (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredLessons.map((lesson) => {
+                // Map lesson data từ API sang format của LessonCard
+                let level: "beginner" | "intermediate" | "advanced" = "beginner";
+                if (lesson.locked) {
+                  level = lesson.exercises > 18 ? "advanced" : "intermediate";
+                } else if (!lesson.completed) {
+                  level = "intermediate";
+                }
+
+                return (
+                  <LessonCard
+                    key={lesson._id}
+                    id={lesson._id}
+                    title={lesson.lessontitle}
+                    description={lesson.description}
+                    level={level}
+                    duration={lesson.time}
+                    progress={lesson.progress}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goFirst}
+                  disabled={!hasPrev}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={prevPage}
+                  disabled={!hasPrev}
+                >
+                  Previous
+                </Button>
+                <span className="px-4 py-2 text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={nextPage}
+                  disabled={!hasNext}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goLast}
+                  disabled={!hasNext}
+                >
+                  Last
+                </Button>
+              </div>
+            )}
+
+            {/* No Results */}
+            {filteredLessons.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-muted-foreground">
+                  No lessons found. Try a different search term or filter.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>
