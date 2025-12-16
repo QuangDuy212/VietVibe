@@ -75,6 +75,17 @@ export const callGetGameDetail = (id: string) => {
     return axios.get<IBackendRes<IGame>>(`/api/v1/games/${id}`);
 };
 
+// game.api.ts
+export const getGameByLessonId = async (lessonId: number) => {
+  return axios.get("/games", {
+    params: {
+      filter: `lesson.id==${lessonId}`,
+      page: 0,
+      size: 1
+    }
+  });
+};
+
 // Tạo game mới
 export const callCreateGame = (data: {
     name: string;

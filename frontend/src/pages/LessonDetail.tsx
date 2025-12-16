@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, CheckCircle2, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ILesson, ICurrentLesson } from "@/types/common.type";
 import {
-  ILesson,
-  ICurrentLesson
-} from '@/types/common.type';
-import { callFetchLessonsPaginated, callFetchLessonDetail, callFetchVocbulary } from "@/config/api";
+  callFetchLessonsPaginated,
+  callFetchLessonDetail,
+  callFetchVocbulary,
+} from "@/config/api";
 
 const levelColors = {
   BEGINNER: "bg-secondary/10 text-secondary hover:bg-secondary/20",
@@ -23,7 +24,9 @@ const LessonDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [currentLesson, setCurrentLesson] = useState<ICurrentLesson | null>(null);
+  const [currentLesson, setCurrentLesson] = useState<ICurrentLesson | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
@@ -37,7 +40,7 @@ const LessonDetail = () => {
         // Fetch paginated lessons to get current lesson with embedded vocabulary & details
         const lessonRes = await callFetchLessonsPaginated(1, 100);
         const lessons: ILesson[] = lessonRes?.data?.result || [];
-        const foundLesson = lessons.find(l => l._id === id);
+        const foundLesson = lessons.find((l) => l._id === id);
 
         if (!foundLesson) {
           setLoading(false);
@@ -58,7 +61,7 @@ const LessonDetail = () => {
 
         // Fetch vocabulary
         const vocabRes = await callFetchVocbulary(id);
-        
+
         // Ensure detailData is correctly extracted from the API response
         // If detailData is empty, fallback to "No data available"
 
@@ -86,15 +89,16 @@ const LessonDetail = () => {
         // Transform vocabulary from API response to simplified format for display
         // No need to filter - API already returns data for this lesson only
         const allVocab = vocabRes?.data || [];
-        const simplifiedVocabulary = (Array.isArray(allVocab) ? allVocab : [])
-          .map((item: any) => ({
-            word: item.word,
-            meaning: item.englishMeaning,
-            example: item.exampleSentence || "No example sentence",
-          }));
+        const simplifiedVocabulary = (
+          Array.isArray(allVocab) ? allVocab : []
+        ).map((item: any) => ({
+          word: item.word,
+          meaning: item.englishMeaning,
+          example: item.exampleSentence || "No example sentence",
+        }));
 
         // Calculate section completion based on current progress
-        const sectionsWithCompletion = sections.map(section => ({
+        const sectionsWithCompletion = sections.map((section) => ({
           ...section,
           completed: (progress || 0) >= section.progressThreshold,
         }));
@@ -106,7 +110,6 @@ const LessonDetail = () => {
           simplifiedVocabulary,
           details: null,
         });
-
       } catch (error) {
         console.error("Error fetching lesson data:", error);
       } finally {
@@ -133,11 +136,14 @@ const LessonDetail = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4"></div>
-          <div className="text-center text-muted-foreground">Loading lesson...</div>
+          <div className="text-center text-muted-foreground">
+            Loading lesson...
+          </div>
         </div>
       </div>
     );
   }
+  
   // JSX/Rendering
   return (
     <div className="min-h-screen bg-background">
@@ -160,10 +166,16 @@ const LessonDetail = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
-                    <CardTitle className="text-3xl">{currentLesson.lessontitle}</CardTitle>
-                    <p className="text-muted-foreground">{currentLesson.description}</p>
+                    <CardTitle className="text-3xl">
+                      {currentLesson.lessontitle}
+                    </CardTitle>
+                    <p className="text-muted-foreground">
+                      {currentLesson.description}
+                    </p>
                   </div>
-                  <Badge className={levelColors[currentLesson.level]}>{currentLesson.level}</Badge>
+                  <Badge className={levelColors[currentLesson.level]}>
+                    {currentLesson.level}
+                  </Badge>
                 </div>
 
                 <div className="flex items-center gap-4 mt-4">
@@ -186,7 +198,9 @@ const LessonDetail = () => {
               <CardContent className="p-0">
                 <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden">
                   <video
-                    src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/storage/video/${currentLesson?.videourl}`}
+                    src={`${
+                      import.meta.env.VITE_BACKEND_URL
+                    }/api/v1/storage/video/${currentLesson?.videourl}`}
                     controls
                     className="w-full h-full object-cover"
                   />
@@ -216,16 +230,21 @@ const LessonDetail = () => {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <h4 className="font-semibold text-lg">{item.word}</h4>
-                          <p className="text-sm text-muted-foreground">{item.meaning}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.meaning}
+                          </p>
                         </div>
                       </div>
                       <p className="text-sm italic mt-2">
-                        Example: <span className="font-medium">{item.example}</span>
+                        Example:{" "}
+                        <span className="font-medium">{item.example}</span>
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-muted-foreground">No vocabulary found for this lesson.</p>
+                  <p className="text-muted-foreground">
+                    No vocabulary found for this lesson.
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -250,8 +269,12 @@ const LessonDetail = () => {
                     )}
                     <div className="flex-1">
                       <p className="font-medium text-sm">{section.title}</p>
-                      <p className="text-xs text-muted-foreground">{section.duration}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{(section as any).content}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {section.duration}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {(section as any).content}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -266,17 +289,17 @@ const LessonDetail = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   {progress === 100
                     ? "You have completed this lesson!"
-                    : "Take a quiz to test your knowledge"
-                  }
+                    : "Take a quiz to test your knowledge"}
                 </p>
                 <Button
                   variant="default"
                   className="w-full"
-                  onClick={progress === 100 ? undefined : handleCompleteLesson}
-                  disabled={progress === 100}
+                  onClick={() => navigate("/games")}
                 >
-                  {progress === 100 ? "Completed" : "Take the Quiz"}
+                  Take the Quiz
                 </Button>
+                
+
               </CardContent>
             </Card>
           </div>

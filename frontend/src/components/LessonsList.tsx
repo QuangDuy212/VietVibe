@@ -110,16 +110,19 @@ const LessonsList = () => {
                 }
 
                 return (
-                  <LessonCard
-                    key={lesson._id}
-                    id={lesson._id}
-                    title={lesson.lessontitle}
-                    description={lesson.description}
-                    level={level}
-                    duration={lesson.time}
-                    progress={lesson.progress}
-                  />
-                );
+  <LessonCard
+    key={lesson._id}
+    id={lesson._id}
+    title={lesson.lessontitle}
+    description={lesson.description}
+    level={level}
+    duration={lesson.time}
+    progress={lesson.progress}
+    locked={lesson.locked}
+    completed={lesson.completed}
+  />
+);
+
               })}
             </div>
 
