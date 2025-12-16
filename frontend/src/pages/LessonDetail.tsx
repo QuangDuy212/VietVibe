@@ -29,6 +29,8 @@ const LessonDetail = () => {
   );
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [allLessons, setAllLessons] = useState<ILesson[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
 
   // Fetch lesson data on component mount
   useEffect(() => {
@@ -40,7 +42,12 @@ const LessonDetail = () => {
         // Fetch paginated lessons to get current lesson with embedded vocabulary & details
         const lessonRes = await callFetchLessonsPaginated(1, 100);
         const lessons: ILesson[] = lessonRes?.data?.result || [];
-        const foundLesson = lessons.find((l) => l._id === id);
+        setAllLessons(lessons);
+
+        const index = lessons.findIndex((l) => l._id === id);
+        setCurrentIndex(index);
+
+        const foundLesson = lessons[index];
 
         if (!foundLesson) {
           setLoading(false);
@@ -129,6 +136,14 @@ const LessonDetail = () => {
   const handleCompleteLesson = () => {
     setProgress(100);
   };
+  const handleNextLesson = () => {
+    if (currentIndex === -1) return;
+
+    const nextLesson = allLessons[currentIndex + 1];
+    if (!nextLesson) return;
+
+    navigate(`/lesson/${nextLesson._id}`);
+  };
 
   // Show loading state
   if (loading || !currentLesson) {
@@ -143,7 +158,7 @@ const LessonDetail = () => {
       </div>
     );
   }
-  
+
   // JSX/Rendering
   return (
     <div className="min-h-screen bg-background">
@@ -298,8 +313,14 @@ const LessonDetail = () => {
                 >
                   Take the Quiz
                 </Button>
-                
-
+                <Button
+                  variant="outline"
+                  className="w-full mt-3"
+                  onClick={handleNextLesson}
+                  disabled={currentIndex === allLessons.length - 1}
+                >
+                  Next Lesson
+                </Button>
               </CardContent>
             </Card>
           </div>
