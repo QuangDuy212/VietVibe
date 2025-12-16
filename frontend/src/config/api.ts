@@ -245,7 +245,7 @@ export const callCreatePoint = (data: {
 
 // Mới: Get user stats
 export const callGetUserStats = (userId: string) => {
-    return axios.get<IBackendRes<UserStatsResponse>>(`/api/v1/points/user/${userId}/stats`);
+    return axios.get<IBackendRes<UserStatsResponse>>(`/api/v1/points/user/${userId}/stats/game`);
 };
 
 //MODULE FILE UPLOAD

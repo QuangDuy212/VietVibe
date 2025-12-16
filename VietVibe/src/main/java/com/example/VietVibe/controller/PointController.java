@@ -97,8 +97,7 @@ public class PointController {
     }
 
     // Mới: Get user stats
-    @GetMapping("/user/{userId}/stats")
-    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.name")
+    @GetMapping("/user/{userId}/stats/game")
     public ResponseEntity<UserStatsResponse> getUserStats(@PathVariable String userId) {
         return ResponseEntity.ok(pointService.getUserStats(userId));
     }

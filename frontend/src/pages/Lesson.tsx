@@ -27,6 +27,7 @@ const Lesson = () => {
 
   const goPrev = () => prevPage();
   const goNext = () => nextPage();
+  console.log(">>>>> check lessons: ",lessons )
 
   if (loading) {
     return (
