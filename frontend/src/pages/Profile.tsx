@@ -19,7 +19,6 @@ const Profile = () => {
         total += point.score;
       });
       setTotalPoints(total);
-      console.log("Total Points:", total);
     }
     tottalPoint();
   },[])

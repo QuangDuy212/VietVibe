@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 const LessonsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
-  
+
   // Sử dụng hook để fetch data từ API
-  const { 
-    lessons, 
-    loading, 
+  const {
+    lessons,
+    loading,
     error,
     page,
     totalPages,
@@ -27,22 +27,25 @@ const LessonsList = () => {
 
   // Lọc lessons theo search và level
   const filteredLessons = lessons.filter((lesson) => {
-    const matchesSearch = 
+    // 1. Filter theo search query (Tiêu đề hoặc Mô tả)
+    const matchesSearch =
       lesson.lessontitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Map level từ progress/locked status
-    let lessonLevel = "beginner";
-    if (lesson.locked) {
-      lessonLevel = lesson.exercises > 18 ? "advanced" : "intermediate";
-    } else if (lesson.completed) {
-      lessonLevel = "beginner";
-    } else {
-      lessonLevel = "intermediate";
-    }
-    
-    const matchesLevel = levelFilter === "all" || lessonLevel === levelFilter;
-    return matchesSearch && matchesLevel;
+
+    // 2. Filter theo Level (Dùng trực tiếp trường 'level' từ JSON)
+    // Chuyển level về chữ thường để so sánh (ví dụ: "BEGINNER" -> "beginner")
+    const lessonLevel = lesson.level ? lesson.level.toLowerCase() : "beginner";
+
+    // Chuẩn hóa levelFilter của bạn (nếu levelFilter là "advanced" thì khớp với "advance")
+    const normalizedFilter = levelFilter.toLowerCase();
+
+    // Xử lý trường hợp đặc biệt nếu Backend trả về "ADVANCE" nhưng UI dùng "advanced"
+    const isLevelMatch =
+      normalizedFilter === "all" ||
+      lessonLevel === normalizedFilter ||
+      (lessonLevel === "advance" && normalizedFilter === "advanced");
+
+    return matchesSearch && isLevelMatch;
   });
 
   return (
@@ -73,9 +76,9 @@ const LessonsList = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Levels</SelectItem>
-              <SelectItem value="beginner">Beginner</SelectItem>
-              <SelectItem value="intermediate">Intermediate</SelectItem>
-              <SelectItem value="advanced">Advanced</SelectItem>
+              <SelectItem value="BEGINNER">Beginner</SelectItem>
+              <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+              <SelectItem value="ADVANCE">Advanced</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -101,25 +104,20 @@ const LessonsList = () => {
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredLessons.map((lesson) => {
-                // Map lesson data từ API sang format của LessonCard
-                let level: "beginner" | "intermediate" | "advanced" = "beginner";
-                if (lesson.locked) {
-                  level = lesson.exercises > 18 ? "advanced" : "intermediate";
-                } else if (!lesson.completed) {
-                  level = "intermediate";
-                }
-
                 return (
                   <LessonCard
                     key={lesson._id}
                     id={lesson._id}
                     title={lesson.lessontitle}
                     description={lesson.description}
-                    level={level}
+                    level={lesson.level}
                     duration={lesson.time}
                     progress={lesson.progress}
+                    locked={lesson.locked}
+                    completed={lesson.completed}
                   />
                 );
+
               })}
             </div>
 

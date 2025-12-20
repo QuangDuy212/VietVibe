@@ -44,9 +44,8 @@ public class User {
     @OneToMany(mappedBy = "user")
     List<Point> points;
 
-    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "users")
-    @JsonIgnore
-    List<Lesson> lessons;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    List<UserLesson> userLessons;
 
     @PrePersist
     public void handleBeforeCreate() {

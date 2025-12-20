@@ -30,9 +30,6 @@ public class Lesson {
     @JsonProperty("_id")
     String id;
 
-    @Column(length = 512)
-    String refreshToken;
-
     @Column(name = "lessontitle", unique = true, length = 255, nullable = false)
     String lessontitle;
     String videourl;
@@ -42,17 +39,14 @@ public class Lesson {
     Instant updatedAt;
     String createdBy;
     String updatedBy;
+    String time;
+    int durationSeconds;
     @Enumerated(EnumType.STRING)
     LessonLevel level;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JsonIgnoreProperties(value = { "lessons" })
-    @JoinTable(name = "user_lesson", joinColumns = @JoinColumn(name = "lesson_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
-    List<User> users;
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
+    List<UserLesson> userLessons;
 
-    // @OneToOne(cascade = CascadeType.ALL)
-    // @JoinColumn(name = "game_id")
-    // Game game;
     @OneToOne(mappedBy = "lesson")
     Game game;
 
@@ -62,6 +56,7 @@ public class Lesson {
 
     @OneToOne(mappedBy = "lesson", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private LessonDetail lessonDetail;
+
     @PrePersist
     public void handleBeforeCreate() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true

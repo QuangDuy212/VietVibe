@@ -14,7 +14,6 @@ import com.example.VietVibe.entity.Lesson;
 @Mapper(componentModel = "spring")
 public interface LessonMapper {
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "refreshToken", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -26,7 +25,6 @@ public interface LessonMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "refreshToken", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
