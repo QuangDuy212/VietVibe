@@ -40,11 +40,26 @@ const GameDetail = () => {
           ? rawQuestions.map((q: any, qIndex: number) => {
             const rawAnswers = q.answers ?? q.answerList ?? q.answerDTOs ?? [];
             const options = Array.isArray(rawAnswers)
-              ? rawAnswers.map((a: any) => a.content ?? a.text ?? "")
+              ? rawAnswers.map((a: any) => ({
+                id: String(a.id ?? a._id ?? ""),
+                content: a.content ?? a.text ?? "",
+                isCorrect: !!a.isCorrect,
+                orderIndex: typeof a.orderIndex === 'number' ? a.orderIndex : null,
+                isSelected: false, // Thêm trường này để track đáp án đã được chọn
+              }))
               : [];
+            // For multiple choice, find index of correct; for sentence order, prepare correctOrder
             let correctIndex = -1;
+            let correctOrder: string[] | null = null;
             if (Array.isArray(rawAnswers)) {
               correctIndex = rawAnswers.findIndex((a: any) => !!a.isCorrect);
+              // build correct order if orderIndex present
+              if (rawAnswers.every((a: any) => typeof a.orderIndex === 'number')) {
+                correctOrder = rawAnswers
+                  .slice()
+                  .sort((a: any, b: any) => a.orderIndex - b.orderIndex)
+                  .map((a: any) => String(a.id ?? a._id ?? ""));
+              }
             }
             if (correctIndex === -1) correctIndex = 0;
             return {
@@ -52,6 +67,7 @@ const GameDetail = () => {
               question: q.content ?? q.text ?? "",
               options,
               correctAnswer: correctIndex,
+              correctOrder,
             };
           })
           : [];
@@ -61,6 +77,7 @@ const GameDetail = () => {
           description: raw.description ?? "",
           totalQuestions: mappedQuestions.length,
           questions: mappedQuestions,
+          type: raw.type ?? raw.gameType ?? null,
         });
         setCurrentQuestion(0);
         setSelectedAnswer("");
@@ -82,11 +99,12 @@ const GameDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const currentQ = game?.questions?.[currentQuestion] ?? { question: "", options: [], correctAnswer: 0 };
+  const currentQ = game?.questions?.[currentQuestion] ?? { question: "", options: [], correctAnswer: 0, correctOrder: null };
   const progress = ((currentQuestion + 1) / (game?.totalQuestions ?? 1)) * 100;
 
-  const handleSubmitAnswer = () => {
-    if (!selectedAnswer) {
+  const handleSubmitAnswer = (val?: string) => {
+    const sel = val ?? selectedAnswer;
+    if (!sel) {
       toast({
         title: "Chưa chọn đáp án",
         description: "Vui lòng chọn một đáp án trước khi tiếp tục.",
@@ -94,16 +112,50 @@ const GameDetail = () => {
       });
       return;
     }
-    const answerIndex = parseInt(selectedAnswer);
+    if (showResult) return;
+    const answerIndex = parseInt(sel);
     const isCorrect = answerIndex === currentQ.correctAnswer;
     if (isCorrect) {
-      setScore(score + 1);
+      setScore(prev => prev + 1);
     }
-    setAnswers([...answers, isCorrect]);
+    setAnswers(prev => [...prev, isCorrect]);
+    setSelectedAnswer(sel);
     setShowResult(true);
   };
 
   const handleNextQuestion = () => {
+    if (!showResult) {
+      // If SENTENCE_ORDER compare the selected options order with correctOrder
+      if (game?.type === 'SENTENCE_ORDER') {
+        const selectedOptions = currentQ.options.filter((o: any) => o.isSelected);
+        const userOrder = selectedOptions.map((o: any) => String(o.id ?? ""));
+        const correctOrder = (currentQ.correctOrder ?? []).map((id: any) => String(id ?? ""));
+        const isCorrect =
+          userOrder.length === correctOrder.length &&
+          userOrder.every((v: string, i: number) => v === correctOrder[i]);
+
+        if (isCorrect) setScore((prev) => prev + 1);
+        setAnswers((prev) => [...prev, isCorrect]);
+        setShowResult(true);
+        return;
+      }
+      // Default (multiple choice)
+      if (!selectedAnswer) {
+        toast({
+          title: "Chưa chọn đáp án",
+          description: "Vui lòng chọn một đáp án trước khi tiếp tục.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const answerIndex = parseInt(selectedAnswer);
+      const isCorrect = answerIndex === currentQ.correctAnswer;
+      if (isCorrect) setScore(prev => prev + 1);
+      setAnswers(prev => [...prev, isCorrect]);
+      setShowResult(true);
+      return;
+    }
+    // showResult === true => advance
     if (currentQuestion < game.totalQuestions - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer("");
@@ -112,17 +164,29 @@ const GameDetail = () => {
       // Game finished
       toast({
         title: "Hoàn thành!",
-        description: `Bạn đã trả lời đúng ${score + (answers[answers.length - 1] ? 1 : 0)}/${game.totalQuestions} câu hỏi.`,
+        description: `Bạn đã trả lời đúng ${score}/${game.totalQuestions} câu hỏi.`,
       });
     }
   };
 
   const handleRestart = () => {
-    setCurrentQuestion(0);
-    setSelectedAnswer("");
-    setScore(0);
-    setShowResult(false);
-    setAnswers([]);
+    if (game) {
+      // Reset isSelected cho tất cả options
+      const resetQuestions = game.questions.map((q: any) => ({
+        ...q,
+        options: q.options.map((opt: any) => ({
+          ...opt,
+          isSelected: false
+        }))
+      }));
+
+      setGame(prev => ({ ...prev, questions: resetQuestions }));
+      setCurrentQuestion(0);
+      setSelectedAnswer("");
+      setScore(0);
+      setShowResult(false);
+      setAnswers([]);
+    }
   };
 
   const isGameFinished = currentQuestion === game?.totalQuestions - 1 && showResult;
@@ -198,73 +262,207 @@ const GameDetail = () => {
                   <CardTitle className="text-xl">{currentQ.question}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <RadioGroup
-                    value={selectedAnswer}
-                    onValueChange={setSelectedAnswer}
-                    disabled={showResult}
-                  >
-                    {currentQ.options.map((option: string, index: number) => {
-                      const isCorrect = index === currentQ.correctAnswer;
-                      const isSelected = parseInt(selectedAnswer) === index;
-                      let bgColor = "bg-muted/50";
-                      if (showResult) {
-                        if (isCorrect) {
-                          bgColor = "bg-primary/20 border-2 border-primary";
-                        } else if (isSelected && !isCorrect) {
-                          bgColor = "bg-destructive/20 border-2 border-destructive";
+                  {game?.type === 'SENTENCE_ORDER' ? (
+                    <div className="space-y-6">
+                      {/* Khu vực hiển thị đáp án đã chọn (ô vuông ở trên) */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 min-h-[120px] bg-gray-50/50">
+                        <Label className="block text-sm font-medium text-gray-700 mb-3">
+                          Thứ tự sắp xếp của bạn:
+                        </Label>
+                        <div className="flex flex-wrap gap-3 min-h-[60px]" id="selected-answers-area">
+                          {(() => {
+                            // Tìm các đáp án đã được chọn (đã di chuyển lên trên)
+                            const selectedOptions = currentQ.options.filter((opt: any) => opt.isSelected);
+                            if (selectedOptions.length === 0) {
+                              return (
+                                <div className="w-full text-center py-4 text-gray-400 italic">
+                                  Chọn các đáp án bên dưới để sắp xếp
+                                </div>
+                              );
+                            }
+                            return selectedOptions.map((opt: any, idx: number) => (
+                              <button
+                                key={opt.id ?? idx}
+                                type="button"
+                                onClick={() => {
+                                  if (showResult) return;
+                                  // Khi bấm vào đáp án đã chọn, trả về nhóm đáp án bên dưới
+                                  // và loại khỏi thứ tự đang sắp xếp
+                                  const remainingSelected = currentQ.options.filter(
+                                    (o: any) => o.isSelected && o.id !== opt.id
+                                  );
+                                  const remainingUnselected = currentQ.options.filter(
+                                    (o: any) => !o.isSelected || o.id === opt.id
+                                  );
+
+                                  const newOptions = [
+                                    ...remainingSelected.map((o: any) =>
+                                      o.id === opt.id ? { ...o, isSelected: false } : o
+                                    ),
+                                    ...remainingUnselected.map((o: any) =>
+                                      o.id === opt.id ? { ...o, isSelected: false } : o
+                                    ),
+                                  ];
+
+                                  const newQuestions = [...game.questions];
+                                  newQuestions[currentQuestion] = {
+                                    ...currentQ,
+                                    options: newOptions,
+                                  };
+                                  setGame((prev) => ({ ...prev, questions: newQuestions }));
+                                }}
+                                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${showResult
+                                  ? 'bg-gray-100 cursor-not-allowed border border-gray-300'
+                                  : 'bg-blue-50 hover:bg-blue-100 cursor-pointer border border-blue-200 shadow-sm'
+                                  }`}
+                              >
+                                <span className="text-gray-800">{opt.content}</span>
+                                {!showResult && (
+                                  <XCircle className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                                )}
+                              </button>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Khu vực chứa đáp án gốc (ô vuông ở dưới) */}
+                      <div>
+                        <Label className="block text-sm font-medium text-gray-700 mb-3">
+                          Các đáp án có sẵn:
+                        </Label>
+                        <div className="flex flex-wrap gap-3">
+                          {currentQ.options
+                            .filter((opt: any) => !opt.isSelected)
+                            .map((opt: any, idx: number) => (
+                              <button
+                                key={opt.id ?? idx}
+                                type="button"
+                                onClick={() => {
+                                  if (showResult) return;
+                                  // Khi chọn đáp án, thêm vào cuối thứ tự sắp xếp hiện tại
+                                  const alreadySelected = currentQ.options.filter(
+                                    (o: any) => o.isSelected && o.id !== opt.id
+                                  );
+                                  const remaining = currentQ.options.filter(
+                                    (o: any) => !o.isSelected && o.id !== opt.id
+                                  );
+
+                                  const picked = { ...opt, isSelected: true };
+
+                                  const newOptions = [
+                                    ...alreadySelected,
+                                    picked,
+                                    ...remaining,
+                                  ];
+
+                                  const newQuestions = [...game.questions];
+                                  newQuestions[currentQuestion] = {
+                                    ...currentQ,
+                                    options: newOptions,
+                                  };
+                                  setGame((prev) => ({ ...prev, questions: newQuestions }));
+                                }}
+                                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${showResult
+                                  ? 'bg-gray-100 cursor-not-allowed border border-gray-300'
+                                  : 'bg-white hover:bg-gray-50 cursor-pointer border border-gray-300 shadow-sm hover:shadow-md'
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-800">{opt.content}</span>
+                                </div>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <RadioGroup
+                      value={selectedAnswer}
+                      onValueChange={setSelectedAnswer}
+                      disabled={showResult}
+                    >
+                      {currentQ.options.map((option: any, index: number) => {
+                        const isCorrect = index === currentQ.correctAnswer || option.isCorrect;
+                        const isSelected = parseInt(selectedAnswer) === index;
+                        let bgColor = "bg-muted/50";
+                        if (showResult) {
+                          if (isCorrect) {
+                            bgColor = "bg-green-50 border-2 border-green-500";
+                          } else if (isSelected && !isCorrect) {
+                            bgColor = "bg-destructive/20 border-2 border-destructive";
+                          }
                         }
-                      }
-                      return (
-                        <div key={index} className={`flex items-center space-x-3 p-4 rounded-xl ${bgColor} transition-all`}>
-                          <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                          <Label
-                            htmlFor={`option-${index}`}
-                            className="flex-1 cursor-pointer font-medium"
-                          >
-                            {option}
-                          </Label>
-                          {showResult && isCorrect && (
-                            <CheckCircle2 className="h-5 w-5 text-primary" />
-                          )}
-                          {showResult && isSelected && !isCorrect && (
-                            <XCircle className="h-5 w-5 text-destructive" />
+                        return (
+                          <div key={index} className={`flex items-center space-x-3 p-4 rounded-xl ${bgColor} transition-all`}>
+                            <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                            <Label
+                              htmlFor={`option-${index}`}
+                              className="flex-1 cursor-pointer font-medium"
+                            >
+                              {option.content ?? option}
+                            </Label>
+                            {showResult && isCorrect && (
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            )}
+                            {showResult && isSelected && !isCorrect && (
+                              <XCircle className="h-5 w-5 text-destructive" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </RadioGroup>
+                  )}
+                  <div className="space-y-4">
+                    {showResult && (
+                      <div className={`p-4 rounded-xl text-center ${answers[answers.length - 1]
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                        }`}>
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          {answers[answers.length - 1] ? (
+                            <>
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                              <p className="font-semibold text-green-700">Chính xác!</p>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-5 w-5 text-red-600" />
+                              <p className="font-semibold text-red-700">Chưa đúng!</p>
+                            </>
                           )}
                         </div>
-                      );
-                    })}
-                  </RadioGroup>
-                  {!showResult ? (
+                        {!answers[answers.length - 1] && currentQ.correctOrder && game?.type === 'SENTENCE_ORDER' && (
+                          <div className="text-sm text-gray-600 mt-2">
+                            <p className="font-medium mb-1">Thứ tự đúng là:</p>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              {currentQ.correctOrder.map((id: any, idx: number) => {
+                                const correctOption = currentQ.options.find((opt: any) => opt.id === id);
+                                if (!correctOption) return null;
+                                return (
+                                  <div key={id} className="px-3 py-1 bg-green-100 text-green-800 rounded-md text-sm">
+                                    {correctOption.content}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <Button
-                      variant="gradient"
+                      variant={showResult ? "default" : "gradient"}
                       size="lg"
                       className="w-full"
-                      onClick={handleSubmitAnswer}
+                      onClick={handleNextQuestion}
                     >
-                      Kiểm tra đáp án
+                      {currentQuestion < game.totalQuestions - 1
+                        ? "Câu tiếp theo"
+                        : showResult
+                          ? "Xem kết quả"
+                          : "Kiểm tra kết quả"}
                     </Button>
-                  ) : (
-                    <div className="space-y-4">
-                      {answers[answers.length - 1] ? (
-                        <div className="p-4 bg-primary/10 rounded-xl text-center">
-                          <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
-                          <p className="font-semibold text-primary">Chính xác! Tuyệt vời!</p>
-                        </div>
-                      ) : (
-                        <div className="p-4 bg-destructive/10 rounded-xl text-center">
-                          <XCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                          <p className="font-semibold text-destructive">Chưa đúng. Hãy thử lại!</p>
-                        </div>
-                      )}
-                      <Button
-                        variant="default"
-                        size="lg"
-                        className="w-full"
-                        onClick={handleNextQuestion}
-                      >
-                        {currentQuestion < game.totalQuestions - 1 ? "Câu tiếp theo" : "Xem kết quả"}
-                      </Button>
-                    </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             ) : (
