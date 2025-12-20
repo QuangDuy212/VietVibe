@@ -56,7 +56,7 @@ public class LessonController {
         return ResponseEntity.ok().body(this.lessonService.getAllLessonsPagination(spec, pageable));
     }
 
-    @GetMapping("/all")
+    @GetMapping("/fetch/all")
     @ApiMessage("Get all lessons (no paging) success")
     ResponseEntity<List<LessonResponse>> getAllNoPaging() {
         return ResponseEntity.ok().body(this.lessonService.getAllLessons());

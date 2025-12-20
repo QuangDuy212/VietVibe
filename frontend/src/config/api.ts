@@ -275,3 +275,8 @@ export const callUploadFile = (file: unknown, folderType: string) => {
       },
   });
 }
+
+//MODULE USER LESSONS
+export const callSaveProgress =(lessonId: string, seconds: number) => {
+  return axios.post<IBackendRes<unknown>>(`/api/v1/progress/save`, { lessonId, seconds });
+}

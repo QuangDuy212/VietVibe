@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, CheckCircle2, Clock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ILesson, ICurrentLesson } from "@/types/common.type";
 import {
   callFetchLessonsPaginated,
   callFetchLessonDetail,
   callFetchVocbulary,
+  callSaveProgress,
 } from "@/config/api";
 
 const levelColors = {
@@ -31,6 +32,8 @@ const LessonDetail = () => {
   const [progress, setProgress] = useState(0);
   const [allLessons, setAllLessons] = useState<ILesson[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
+
+  const videoRef = useRef(null);
 
   // Fetch lesson data on component mount
   useEffect(() => {
@@ -116,6 +119,7 @@ const LessonDetail = () => {
           simplifiedVocabulary,
           details: null,
         });
+        setProgress(foundLesson.progress || 0);
       } catch (error) {
         console.error("Error fetching lesson data:", error);
       } finally {
@@ -124,16 +128,10 @@ const LessonDetail = () => {
     };
 
     fetchLessonData();
-  }, [id, progress]);
+  }, [id]);
 
   // Update progress locally
   const handleContinueLesson = () => {
-    const newProgress = Math.min(100, progress + 20);
-    setProgress(newProgress);
-  };
-
-  const handleCompleteLesson = () => {
-    setProgress(100);
   };
   const handleNextLesson = () => {
     if (currentIndex === -1) return;
@@ -142,6 +140,30 @@ const LessonDetail = () => {
     if (!nextLesson) return;
 
     navigate(`/lesson/${nextLesson._id}`);
+  };
+  const handlePause = async () => {
+    if (videoRef.current) {
+      const currentTime = Math.floor(videoRef.current.currentTime);
+      const duration = Math.floor(videoRef.current.duration);
+      const progressPercent = Math.floor((currentTime / duration) * 100);
+      console.log("Đang dừng ở giây thứ:", currentTime);
+      try {
+        const res = await callSaveProgress(currentLesson._id,progressPercent);
+        console.log(">>>> check res: ", res)
+      } catch (error) {
+        console.error("Lỗi khi lưu tiến độ học:", error);
+      }
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    console.log(">>> check currentLesson", currentLesson.progress);
+    if (videoRef.current && currentLesson?.progress) {
+      const progress = currentLesson.progress;
+      const duration = videoRef.current.duration;
+      let seconds = progress * duration / 100;
+      videoRef.current.currentTime = seconds;
+    }
   };
 
   // Show loading state
@@ -217,6 +239,9 @@ const LessonDetail = () => {
                     }/api/v1/storage/video/${currentLesson?.videourl}`}
                     controls
                     className="w-full h-full object-cover"
+                    onPause={handlePause}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    ref={videoRef}
                   />
                 </div>
                 <div className="p-6">
