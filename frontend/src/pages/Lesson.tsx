@@ -81,18 +81,18 @@ const Lesson = () => {
                 <div className="flex gap-6">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-primary">
-                      {stats.completedExercises}
+                      {stats.completedLessons}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Exercises Done
+                      Completed
                     </p>
                   </div>
                   <div className="text-center">
                     <p className="text-3xl font-bold text-secondary">
-                      {stats.hoursSpent}
+                      {totalElements}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Hours Spent
+                      Lessons
                     </p>
                   </div>
                 </div>
@@ -108,10 +108,9 @@ const Lesson = () => {
               <Card
                 className={`
                   group
-                  ${
-                    topic.locked
-                      ? "opacity-60 cursor-not-allowed"
-                      : "hover:shadow-lg transition-all duration-300"
+                  ${topic.locked
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:shadow-lg transition-all duration-300"
                   }
                   ${topic.completed ? "border-primary/20" : ""}
                 `}
@@ -125,10 +124,9 @@ const Lesson = () => {
                           w-12 h-20
                           flex items-center justify-center
                           rounded-2xl
-                          ${
-                            topic.completed
-                              ? "bg-primary/10"
-                              : topic.locked
+                          ${topic.completed
+                            ? "bg-primary/10"
+                            : topic.locked
                               ? "bg-muted"
                               : "bg-secondary/10"
                           }
@@ -193,8 +191,8 @@ const Lesson = () => {
                         topic.completed
                           ? "outline"
                           : topic.locked
-                          ? "secondary"
-                          : "default"
+                            ? "secondary"
+                            : "default"
                       }
                       className="gap-2 w-full md:w-[150px] group-hover:scale-105 transition-all"
                     >
@@ -250,10 +248,10 @@ const Lesson = () => {
                 totalPages <= 3
                   ? i + 1
                   : page === 1
-                  ? i + 1
-                  : page === totalPages
-                  ? totalPages - 2 + i
-                  : page - 1 + i;
+                    ? i + 1
+                    : page === totalPages
+                      ? totalPages - 2 + i
+                      : page - 1 + i;
 
               return (
                 <Button

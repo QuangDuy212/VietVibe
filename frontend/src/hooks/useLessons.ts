@@ -100,7 +100,7 @@ export const useLessons = (pageSize: number = 5) => {
   }, [lessons, totalElements]);
 
   const getStats = useCallback(() => {
-    const completedLessons = lessons.filter(l => l.completed);
+    const completedLessons = lessons.filter(l => l.progress === 100);
     const totalExercises = lessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
     const completedExercises = completedLessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
 
