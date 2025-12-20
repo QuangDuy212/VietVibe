@@ -155,7 +155,6 @@ export const useGamesManagement = () => {
       const res = (await callGetGameDetail(
         game._id
       )) as unknown as IBackendRes<IGame>;
-      console.log("GAME DETAIL RAW >>>", res);
 
       if (res.data) {
         const raw = res.data as any;

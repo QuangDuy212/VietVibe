@@ -16,9 +16,9 @@ interface LessonCardProps {
 }
 
 const levelColors = {
-  beginner: "bg-secondary/10 text-secondary",
-  intermediate: "bg-accent/10 text-accent",
-  advanced: "bg-primary/10 text-primary",
+  BEGINNER: "bg-secondary/10 text-secondary",
+  INTERMEDIATE: "bg-accent/10 text-accent",
+  ADVANCE: "bg-primary/10 text-primary",
 };
 
 const LessonCard = ({
@@ -59,7 +59,8 @@ const LessonCard = ({
         {/* CONTENT */}
         <CardContent className="flex flex-col flex-1 space-y-4">
           <div className="flex items-center gap-3">
-            <Badge className={levelColors[level]}>{level}</Badge>
+            <Badge className={levelColors[level]}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>{level}</Badge>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               {duration}

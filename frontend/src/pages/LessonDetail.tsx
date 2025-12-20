@@ -62,7 +62,6 @@ const LessonDetail = () => {
           detailData = detailRes?.data || {};
         } catch (detailError) {
           // Lesson detail doesn't exist yet, use empty object
-          console.log("Lesson detail not found, using empty content");
           detailData = {};
         }
 
