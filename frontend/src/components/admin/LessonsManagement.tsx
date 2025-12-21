@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   callFetchLessonsPaginated,
@@ -80,7 +78,9 @@ import {
   ChevronsRight,
   Eye,
   FileText,
-  Upload, Video, X,
+  Upload,
+  Video,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -98,6 +98,8 @@ const levelColors = {
   ADVANCE: "bg-primary/10 text-primary hover:bg-primary/20",
 };
 const LessonsManagement = () => {
+  const [viewOnly, setViewOnly] = useState(false);
+
   const [lessons, setLessons] = useState<ILesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -127,7 +129,7 @@ const LessonsManagement = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [time, setTime] = useState("");
-  const [durationSeconds,setDurationSeconds] = useState(0);
+  const [durationSeconds, setDurationSeconds] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +155,10 @@ const LessonsManagement = () => {
   };
 
   const openDialog = (lesson?: ILesson) => {
+    if (!lesson) {
+      setViewOnly(false);
+    }
+
     if (lesson) {
       setEditingLesson(lesson);
       setFormData({
@@ -172,13 +178,14 @@ const LessonsManagement = () => {
 
           // Transform vocabulary data
           const vocabData = vocabRes?.data || [];
-          const transformedVocab: Vocabulary[] = (Array.isArray(vocabData) ? vocabData : [])
-            .map((item: any) => ({
-              id: item._id || `vocab-${Date.now()}`,
-              word: item.word,
-              meaning: item.englishMeaning,
-              example: item.exampleSentence,
-            }));
+          const transformedVocab: Vocabulary[] = (
+            Array.isArray(vocabData) ? vocabData : []
+          ).map((item: any) => ({
+            id: item._id || `vocab-${Date.now()}`,
+            word: item.word,
+            meaning: item.englishMeaning,
+            example: item.exampleSentence,
+          }));
           setVocabularies(transformedVocab);
 
           // Load lesson details
@@ -265,7 +272,10 @@ const LessonsManagement = () => {
       console.log(">>>>> check payload: ", lessonPayload);
       if (editingLesson) {
         // Update lesson basic info
-        const updateRes = await callUpdateLesson(editingLesson._id, lessonPayload);
+        const updateRes = await callUpdateLesson(
+          editingLesson._id,
+          lessonPayload
+        );
 
         // Upsert lesson detail
         if (lessonDetailId) {
@@ -277,8 +287,8 @@ const LessonsManagement = () => {
               lessonId: editingLesson._id,
             });
           } catch (e) {
-            console.error('Failed to update lesson detail', e);
-            toast.error('Failed to update lesson content');
+            console.error("Failed to update lesson detail", e);
+            toast.error("Failed to update lesson content");
           }
         } else {
           try {
@@ -291,8 +301,8 @@ const LessonsManagement = () => {
             const created = createDetailRes?.data?.data;
             if (created && created._id) setLessonDetailId(created._id);
           } catch (e) {
-            console.error('Failed to create lesson detail', e);
-            toast.error('Failed to save lesson content');
+            console.error("Failed to create lesson detail", e);
+            toast.error("Failed to save lesson content");
           }
         }
 
@@ -317,25 +327,29 @@ const LessonsManagement = () => {
           }));
 
         if (newVocs.length) {
-          const validNewVocs = newVocs.filter((v) => v.word && v.englishMeaning);
+          const validNewVocs = newVocs.filter(
+            (v) => v.word && v.englishMeaning
+          );
           try {
             const batchRes = await callCreateVocabulariesBatch(validNewVocs);
           } catch (e) {
-            console.error('Failed to create new vocabularies batch', e);
+            console.error("Failed to create new vocabularies batch", e);
             // fallback to per-item creates
             for (const nv of validNewVocs) {
               try {
                 const resV = await callCreateVocabulary(nv);
               } catch (err) {
-                console.error('Failed to create vocab item', nv, err);
+                console.error("Failed to create vocab item", nv, err);
               }
             }
-            toast.error('Failed to create some new vocabulary items');
+            toast.error("Failed to create some new vocabulary items");
           }
         }
 
         // Update existing vocabularies
-        const existingVocs = vocabularies.filter((v) => !v.id.startsWith("new-"));
+        const existingVocs = vocabularies.filter(
+          (v) => !v.id.startsWith("new-")
+        );
         for (const v of existingVocs) {
           try {
             const updVRes = await callUpdateVocabulary(v.id, {
@@ -355,8 +369,12 @@ const LessonsManagement = () => {
         // Create new lesson
         const res = await callCreateLesson(lessonPayload as any);
         // handle different possible response shapes
-        const createdLesson = (res?.data?.data ?? res?.data) as ILesson | any | undefined;
-        const lessonId = createdLesson?._id || createdLesson?.id || createdLesson?.lessonId;
+        const createdLesson = (res?.data?.data ?? res?.data) as
+          | ILesson
+          | any
+          | undefined;
+        const lessonId =
+          createdLesson?._id || createdLesson?.id || createdLesson?.lessonId;
 
         if (lessonId) {
           // Create lesson detail
@@ -387,24 +405,23 @@ const LessonsManagement = () => {
               lessonId,
             }));
 
-
           if (validVocs.length) {
             try {
               const batchRes = await callCreateVocabulariesBatch(validVocs);
             } catch (e) {
-              console.error('Failed to create vocabularies batch', e);
+              console.error("Failed to create vocabularies batch", e);
               // fallback: try creating individually
               for (const vv of validVocs) {
                 try {
                   const resV = await callCreateVocabulary(vv);
                 } catch (err) {
-                  console.error('Failed to create vocab', vv, err);
+                  console.error("Failed to create vocab", vv, err);
                 }
               }
-              toast.error('Failed to create some vocabulary items');
+              toast.error("Failed to create some vocabulary items");
             }
           } else {
-            console.log('No valid vocabularies to create (all empty)');
+            console.log("No valid vocabularies to create (all empty)");
           }
         }
 
@@ -458,9 +475,9 @@ const LessonsManagement = () => {
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      if (file.type.startsWith('video/')) {
+      if (file.type.startsWith("video/")) {
         setVideoFile(file);
-        setFormData(prev => ({ ...prev, videourl: "" }));
+        setFormData((prev) => ({ ...prev, videourl: "" }));
       } else {
         toast.error("Please upload a video file");
       }
@@ -471,9 +488,9 @@ const LessonsManagement = () => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.type.startsWith('video/')) {
+      if (file.type.startsWith("video/")) {
         setVideoFile(file);
-        setFormData(prev => ({ ...prev, videourl: "" }));
+        setFormData((prev) => ({ ...prev, videourl: "" }));
       } else {
         toast.error("Please upload a video file");
       }
@@ -482,7 +499,7 @@ const LessonsManagement = () => {
 
   const removeVideo = () => {
     setVideoFile(null);
-    setFormData(prev => ({ ...prev, videourl: "" }));
+    setFormData((prev) => ({ ...prev, videourl: "" }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -579,26 +596,34 @@ const LessonsManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
-
-                      <Badge className={levelColors[lesson.level]}>{lesson.level}</Badge>
-
+                      <Badge className={levelColors[lesson.level]}>
+                        {lesson.level}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => openDialog(lesson)}
+                          onClick={() => {
+                            setViewOnly(true);
+                            openDialog(lesson);
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => openDialog(lesson)}
+                          onClick={() => {
+                            setViewOnly(false);
+                            openDialog(lesson);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+
                         <Button
                           size="sm"
                           variant="ghost"
@@ -730,15 +755,9 @@ const LessonsManagement = () => {
                       <SelectValue placeholder="Choose lesson level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="BEGINNER">
-                        Beginner
-                      </SelectItem>
-                      <SelectItem value="INTERMEDIATE">
-                        Intermediate
-                      </SelectItem>
-                      <SelectItem value="ADVANCE">
-                        Advance
-                      </SelectItem>
+                      <SelectItem value="BEGINNER">Beginner</SelectItem>
+                      <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+                      <SelectItem value="ADVANCE">Advance</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -759,10 +778,11 @@ const LessonsManagement = () => {
               <div>
                 <Label>Video</Label>
                 <div
-                  className={`relative mt-2 border-2 border-dashed rounded-lg transition-all duration-200 ${isDragging
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50 hover:bg-muted/30"
-                    } ${videoFile || formData.videourl ? "p-4" : "p-8"}`}
+                  className={`relative mt-2 border-2 border-dashed rounded-lg transition-all duration-200 ${
+                    isDragging
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50 hover:bg-muted/30"
+                  } ${videoFile || formData.videourl ? "p-4" : "p-8"}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -804,7 +824,9 @@ const LessonsManagement = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">Current Video</p>
-                        <p className="text-sm text-muted-foreground truncate">{formData.videourl}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {formData.videourl}
+                        </p>
                       </div>
                       <Button
                         type="button"
@@ -828,7 +850,10 @@ const LessonsManagement = () => {
                         Drag and drop video here
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        or <span className="text-primary underline">click to browse</span>
+                        or{" "}
+                        <span className="text-primary underline">
+                          click to browse
+                        </span>
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
                         Supports: MP4, WebM, MOV, AVI
@@ -840,7 +865,9 @@ const LessonsManagement = () => {
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-sm text-muted-foreground">Uploading...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Uploading...
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1024,6 +1051,7 @@ Lưu ý: Chú ý phát âm âm 'th' trong thank"
               size="lg"
               className="bg-red-500 hover:bg-red-600 text-white"
               onClick={handleSave}
+              disabled={viewOnly}
             >
               {editingLesson ? "Save Changes" : "Create Lesson"}
             </Button>
@@ -1037,7 +1065,8 @@ Lưu ý: Chú ý phát âm âm 'th' trong thank"
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this lesson? This action cannot be undone.
+              Are you sure you want to delete this lesson? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
