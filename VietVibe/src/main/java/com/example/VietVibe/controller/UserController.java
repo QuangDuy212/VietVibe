@@ -27,6 +27,7 @@ import com.example.VietVibe.dto.request.UserCreationRequest;
 import com.example.VietVibe.dto.request.UserUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.ApiString;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.UserResponse;
 import com.example.VietVibe.entity.User;
 import com.example.VietVibe.service.UserService;
@@ -46,7 +47,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class UserController {
     UserService userService;
-    // UserExcelImport userExcelImport;
 
     @PublicEndpoint
     @PostMapping
@@ -73,6 +73,12 @@ public class UserController {
         return ResponseEntity.ok().body(this.userService.getMyInfo());
     }
 
+    @GetMapping("/count/total")
+    @ApiMessage("Count all users success")
+    ResponseEntity<CountElementResponse> countAllUsers() {
+        return ResponseEntity.ok().body(this.userService.countAllUsers());
+    }
+
     @DeleteMapping("/{id}")
     @ApiMessage("Delete a user success")
     ResponseEntity<ApiString> delete(@PathVariable String id) {
@@ -87,45 +93,5 @@ public class UserController {
     ResponseEntity<UserResponse> updateUser(@PathVariable String id, @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok().body(this.userService.update(id, request));
     }
-
-    // @CrossOrigin(origins = "*", exposedHeaders = "Content-Disposition")
-    // @GetMapping("/excel/export")
-    // @ApiMessage("Export all users success")
-    // public void exportToExcel(HttpServletResponse response) throws IOException {
-    //     response.setContentType("application/octet-stream");
-    //     DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
-    //     String currentDateTime = dateFormatter.format(new Date());
-
-    //     String headerKey = "Content-Disposition";
-    //     String headerValue = "attachment; filename=users_" + currentDateTime + ".xlsx";
-    //     response.setHeader(headerKey, headerValue);
-
-    //     List<UserResponse> listUsers = this.userService.getAllUsers();
-
-    //     UserExcelExporter excelExporter = new UserExcelExporter(listUsers);
-
-    //     excelExporter.export(response);
-    // }
-
-    // @PostMapping("/excel/import")
-    // @ApiMessage("Import all users success")
-    // public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
-    //     String message = "";
-    //     if (userExcelImport.hasExcelFormat(file)) {
-    //         try {
-    //             List<UserResponse> res = userService.saveFromFileExcel(file);
-    //             message = "The Excel file is uploaded: " + file.getOriginalFilename();
-
-    //             return ResponseEntity.ok().body(res);
-    //         } catch (Exception exp) {
-    //             message = "The Excel file is not upload: " + file.getOriginalFilename() + "!";
-    //             // return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
-
-    //             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
-    //         }
-    //     }
-    //     message = "Please upload an excel file!";
-    //     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
-    // }
 }
 

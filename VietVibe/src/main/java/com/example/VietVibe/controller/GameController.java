@@ -8,6 +8,7 @@ import com.example.VietVibe.dto.request.GameUpdateRequest;
 import com.example.VietVibe.dto.request.UserUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.ApiString;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.UserResponse;
 import com.example.VietVibe.entity.Game;
@@ -80,5 +81,11 @@ public class GameController {
     ResponseEntity<Void> startPlay(@PathVariable Long id) {
         gameService.startPlay(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/count/total")
+    @ApiMessage("Count games success")
+    ResponseEntity<CountElementResponse> countGames() {
+        return ResponseEntity.ok().body(this.gameService.countGames());
     }
 }
