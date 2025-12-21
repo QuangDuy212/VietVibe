@@ -210,6 +210,16 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
           </Button>
         </div>
       </SidebarContent>
+      <div className={`absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-background ${collapsed ? "flex justify-center" : ""}`}>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/")}
+          className={`w-full gap-2 ${collapsed ? "p-2 w-auto" : ""}`}
+        >
+          <Home className="h-4 w-4" />
+          {!collapsed && <span>Về trang chủ</span>}
+        </Button>
+      </div>
     </Sidebar>
   );
 }
