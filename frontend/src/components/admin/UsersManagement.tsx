@@ -357,24 +357,7 @@ const UsersManagement = () => {
 
   // Hàm highlight text tìm kiếm
   const highlightText = (text: string, searchTerm: string) => {
-    if (!searchTerm.trim()) return text;
-    
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = text.split(regex);
-    
-    return (
-      <span>
-        {parts.map((part, index) =>
-          regex.test(part) ? (
-            <mark key={index} className="bg-yellow-200 px-1 rounded">
-              {part}
-            </mark>
-          ) : (
-            part
-          )
-        )}
-      </span>
-    );
+    return text;
   };
 
   const getRoleBadge = (role: string) => {

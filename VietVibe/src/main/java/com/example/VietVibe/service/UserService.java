@@ -158,4 +158,28 @@ public class UserService {
                 .count(count)
                 .build();
     }
+
+    public ApiPagination<UserResponse> search(String keyword, Pageable pageable) {
+        Page<User> pageUser;
+        if (keyword != null && !keyword.isBlank()) {
+            pageUser = this.userRepository.findByUsernameContainingIgnoreCase(keyword, pageable);
+        } else {
+            pageUser = this.userRepository.findAll(pageable);
+        }
+
+        List<UserResponse> listUser = pageUser.getContent().stream()
+                .map(userMapper::toUserResponse)
+                .toList();
+
+        ApiPagination.Meta mt = new ApiPagination.Meta();
+        mt.setCurrent(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        mt.setPages(pageUser.getTotalPages());
+        mt.setTotal(pageUser.getTotalElements());
+
+        return ApiPagination.<UserResponse>builder()
+                .meta(mt)
+                .result(listUser)
+                .build();
+    }
 }

@@ -5,10 +5,12 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import com.turkraft.springfilter.boot.Filter;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -92,6 +94,15 @@ public class UserController {
     @ApiMessage("Update a user success")
     ResponseEntity<UserResponse> updateUser(@PathVariable String id, @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok().body(this.userService.update(id, request));
+    }
+
+    @PostMapping("/search")
+    @ApiMessage("Search users success")
+    ResponseEntity<ApiPagination<UserResponse>> searchUsers(
+            @RequestBody Map<String, String> request,
+            @PageableDefault(size = 10) Pageable pageable) {
+        String keyword = request != null ? request.get("keyword") : null;
+        return ResponseEntity.ok().body(this.userService.search(keyword, pageable));
     }
 }
 

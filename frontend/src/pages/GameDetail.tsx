@@ -86,7 +86,7 @@ const GameDetail = () => {
         setAnswers([]);
 
         // Tăng timesPlayed khi load game (bắt đầu chơi)
-        await callStartPlayGame(id);
+        // await callStartPlayGame(id);
       } catch (error) {
         console.error("Error loading game detail:", error);
         toast({ title: "Lỗi tải game", description: "Không thể tải dữ liệu game." });

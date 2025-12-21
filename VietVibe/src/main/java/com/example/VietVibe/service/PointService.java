@@ -217,8 +217,12 @@ public class PointService {
                 int newScore = point.getScore() + bonus;
                 if (newScore > game.getBestScore()) {
                         game.setBestScore(newScore);
-                        gameRepository.save(game);
                 }
+                
+                // Tăng timesPlayed khi hoàn thành game (tạo point)
+                game.setTimesPlayed(game.getTimesPlayed() + 1);
+                gameRepository.save(game);
+                
                 return pointMapper.toResponse(point);
         }
 
