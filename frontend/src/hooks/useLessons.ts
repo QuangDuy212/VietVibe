@@ -26,7 +26,7 @@ export const useLessons = (pageSize: number = 5) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
- 
+
   const extractPage = (res: any) => {
     const d = res?.data ?? res;
 
@@ -53,63 +53,23 @@ export const useLessons = (pageSize: number = 5) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       if (typeof p === "number") {
         setPage(p);
       }
       const usePage = typeof p === "number" ? p : page;
-      
+
       const response = await callFetchLessonsPaginated(usePage, pageSize);
-      const pageData = extractPage(response);
-      
-      if (pageData.content && Array.isArray(pageData.content)) {
-        const lessonsData = pageData.content as ILesson[];
-        
-        const mockProgressData = [
-          { progress: 100, completed: true, locked: false, exercises: 12, time: "15 min" },
-          { progress: 100, completed: true, locked: false, exercises: 10, time: "12 min" },
-          { progress: 0, completed: false, locked: false, exercises: 15, time: "18 min" },
-          { progress: 0, completed: false, locked: true, exercises: 20, time: "25 min" },
-          { progress: 0, completed: false, locked: true, exercises: 14, time: "16 min" },
-          { progress: 0, completed: false, locked: true, exercises: 18, time: "22 min" },
-          { progress: 0, completed: false, locked: true, exercises: 16, time: "20 min" },
-          { progress: 0, completed: false, locked: true, exercises: 22, time: "28 min" },
-        ];
+      if(response.statusCode !== 200) {
+        throw new Error("Non-200 response");
+      }
+      const pageNumber = response.data.meta.current;
+      setLessons(response.data.result);
+      setTotalPages(response.data.meta.pages);
+      setTotalElements(response.data.meta.total);
 
-        const lessonsWithProgress: LessonWithProgress[] = lessonsData.map((lesson: ILesson, index: number) => {
-          const globalIndex = (usePage - 1) * pageSize + index;
-          const progressData = mockProgressData[globalIndex] || { 
-            progress: 0, 
-            completed: false, 
-            locked: globalIndex >= 3,
-            exercises: 15, 
-            time: "20 min" 
-          };
-          
-          return {
-            ...lesson,
-            progress: progressData.progress,
-            completed: progressData.completed,
-            locked: progressData.locked,
-            exercises: progressData.exercises,
-            time: progressData.time,
-          };
-        });
-
-        setLessons(lessonsWithProgress);
-        setTotalPages(pageData.totalPages);
-        setTotalElements(pageData.totalElements);
-        
-        if (page !== pageData.number) {
-          setPage(pageData.number);
-        }
-        
-        console.log("✅ Lessons paginated:", {
-          currentPage: pageData.number,
-          totalPages: pageData.totalPages,
-          totalElements: pageData.totalElements,
-          lessons: lessonsWithProgress.length
-        });
+      if (page !== pageNumber) {
+        setPage(pageNumber);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to fetch lessons");
@@ -124,9 +84,9 @@ export const useLessons = (pageSize: number = 5) => {
   }, [page, pageSize]);
 
   const updateLessonProgress = useCallback((lessonId: string, progress: number) => {
-    setLessons(prev => 
-      prev.map(lesson => 
-        lesson._id === lessonId 
+    setLessons(prev =>
+      prev.map(lesson =>
+        lesson._id === lessonId
           ? { ...lesson, progress, completed: progress === 100 }
           : lesson
       )
@@ -140,10 +100,10 @@ export const useLessons = (pageSize: number = 5) => {
   }, [lessons, totalElements]);
 
   const getStats = useCallback(() => {
-    const completedLessons = lessons.filter(l => l.completed);
+    const completedLessons = lessons.filter(l => l.progress === 100);
     const totalExercises = lessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
     const completedExercises = completedLessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
-    
+
     return {
       completedLessons: completedLessons.length,
       totalLessons: totalElements,

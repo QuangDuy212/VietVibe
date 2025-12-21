@@ -20,15 +20,15 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const dispatch = useAppDispatch();
-  const isLoading = useAppSelector(state => state.account.isLoading);
+  const isLoading = useAppSelector((state) => state.account.isLoading);
 
   useEffect(() => {
     if (
-      window.location.pathname === '/login'
-      || window.location.pathname === '/register'
+      window.location.pathname === "/login" ||
+      window.location.pathname === "/register"
     )
       return;
-    dispatch(fetchAccount())
+    dispatch(fetchAccount());
 
     let oldRefreshToken: unknown = null;
     const getCookieValue = (name: string) => {
@@ -40,11 +40,11 @@ const App = () => {
       return null;
     };
     const interval = setInterval(() => {
-      if (window.location.pathname === "/" ) {
+      if (window.location.pathname === "/") {
         const refreshToken = getCookieValue("refresh_token");
         if (oldRefreshToken !== null && refreshToken !== oldRefreshToken) {
           console.log("Refresh token has changed. Redirecting to login...");
-          localStorage.removeItem('access_token');
+          localStorage.removeItem("access_token");
           document.location.href = "/auth";
         }
         oldRefreshToken = refreshToken;
@@ -55,7 +55,7 @@ const App = () => {
       }
     }, 500);
     return () => clearInterval(interval);
-  }, [])
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -77,7 +77,7 @@ const App = () => {
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  )
-}
+  );
+};
 
 export default App;

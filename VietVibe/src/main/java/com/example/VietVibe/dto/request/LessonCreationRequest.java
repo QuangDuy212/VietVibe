@@ -23,4 +23,6 @@ public class LessonCreationRequest {
 
     String description;
     LessonLevel level;
+    String time;
+    int durationSeconds;
 }

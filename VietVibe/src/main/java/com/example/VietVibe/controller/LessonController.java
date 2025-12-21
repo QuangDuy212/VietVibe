@@ -20,6 +20,7 @@ import com.example.VietVibe.dto.request.LessonCreationRequest;
 import com.example.VietVibe.dto.request.LessonUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.ApiString;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.LessonResponse;
 import com.example.VietVibe.dto.response.UserResponse;
@@ -56,16 +57,10 @@ public class LessonController {
         return ResponseEntity.ok().body(this.lessonService.getAllLessonsPagination(spec, pageable));
     }
 
-    // @GetMapping("/user")
-    // @ApiMessage("Get user lessons success")
-    // ResponseEntity<ApiPagination<LessonResponse>> getUserLessons(Pageable pageable) {
-    //     return ResponseEntity.ok().body(this.lessonService.getUserLessons(pageable));
-    // }
-
-    @GetMapping("/all")
-    @ApiMessage("Get all lessons (no paging) success")
-    ResponseEntity<List<LessonResponse>> getAllNoPaging() {
-        return ResponseEntity.ok().body(this.lessonService.getAllLessons());
+    @GetMapping("/count/total")
+    @ApiMessage("Count all lessons success")
+    ResponseEntity<CountElementResponse> countLessons() {
+        return ResponseEntity.ok().body(this.lessonService.countLessons());
     }
 
     @GetMapping("/{id}")
@@ -86,6 +81,10 @@ public class LessonController {
     @ApiMessage("Update a lesson success")
     ResponseEntity<LessonResponse> updateLesson(@PathVariable String id, @RequestBody LessonUpdateRequest request) {
         return ResponseEntity.ok().body(this.lessonService.update(id, request));
+    }
+    @GetMapping("/lessons-completed-count")
+    public ResponseEntity<Long> getCompletedCount() {
+        return ResponseEntity.ok(lessonService.getCountCompletedLessons());
     }
 
 }

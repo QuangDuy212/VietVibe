@@ -13,13 +13,14 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import PointsManagement from "@/components/admin/PointsManagement";
 import { useAppSelector } from "@/redux/hook";
+import Dashboard from "@/components/admin/Dashboard";
 
 
 const Admin = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState({
     users: 0,
     lessons: 0,
@@ -84,6 +85,8 @@ const Admin = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case "dashboard":
+        return <Dashboard />;
       case "users":
         return <UsersManagement />;
       case "lessons":
@@ -92,8 +95,6 @@ const Admin = () => {
         return <GamesManagement />;
       case "points":
         return <PointsManagement />;
-      //   case "vocabulary":
-      // return <VocabularyManagement />;
       default:
         return <UsersManagement />;
     }
@@ -132,92 +133,6 @@ const Admin = () => {
 
             {/* Charts Section */}
             <div className="container mx-auto px-6 py-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in">
-                <Card className="bg-card/80 backdrop-blur-xl border-border/50 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      Content Overview
-                    </CardTitle>
-                    <CardDescription>Distribution of lessons and games</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        lessons: {
-                          label: "Lessons",
-                          color: "hsl(var(--secondary))",
-                        },
-                        games: {
-                          label: "Games",
-                          color: "hsl(var(--accent))",
-                        },
-                      }}
-                      className="h-[250px]"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={[
-                            { name: "Content", lessons: stats.lessons, games: stats.games },
-                          ]}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                          <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                          <YAxis stroke="hsl(var(--muted-foreground))" />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="lessons" fill="hsl(var(--secondary))" radius={[8, 8, 0, 0]} />
-                          <Bar dataKey="games" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card/80 backdrop-blur-xl border-border/50 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      User Growth
-                    </CardTitle>
-                    <CardDescription>Total registered users</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        users: {
-                          label: "Users",
-                          color: "hsl(var(--primary))",
-                        },
-                      }}
-                      className="h-[250px]"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={[
-                            { period: "Start", users: 0 },
-                            { period: "Current", users: stats.users },
-                          ]}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                          <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" />
-                          <YAxis stroke="hsl(var(--muted-foreground))" />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Line
-                            type="monotone"
-                            dataKey="users"
-                            stroke="hsl(var(--primary))"
-                            strokeWidth={3}
-                            dot={{ fill: "hsl(var(--primary))", r: 6 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </div>
-
               {/* Content Management Section */}
               <div className="animate-fade-in">
                 {renderContent()}

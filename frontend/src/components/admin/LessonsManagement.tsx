@@ -126,6 +126,8 @@ const LessonsManagement = () => {
   const [phonetic, setPhonetic] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [time, setTime] = useState("");
+  const [durationSeconds,setDurationSeconds] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +140,6 @@ const LessonsManagement = () => {
     try {
       setLoading(true);
       const res = await callFetchLessonsPaginated(page, pageSize);
-      console.log(">>> check res fetch lessons: ", res);
       if (res?.data) {
         const data = res.data as unknown;
         setLessons(data.result || []);
@@ -153,6 +154,7 @@ const LessonsManagement = () => {
 
   const openDialog = (lesson?: ILesson) => {
     if (lesson) {
+      console.log(">>>> check lesson: ", lesson)
       setEditingLesson(lesson);
       setFormData({
         lessontitle: lesson.lessontitle,
@@ -247,24 +249,24 @@ const LessonsManagement = () => {
         videourl: formData.videourl,
         description: formData.description,
         level: formData.level,
+        time: time,
+        durationSeconds: durationSeconds,
       };
-      let videoUrl = formData.video_url;
+      let videoUrl = formData.videourl;
 
       // Upload video if a file is selected
       if (videoFile) {
         const uploadedUrl = await uploadVideo(videoFile);
-        console.log(">>>>>>> check uploadedUrl: ", uploadedUrl)
         if (uploadedUrl) {
           lessonPayload.videourl = uploadedUrl;
-          console.log(">>>>> check edding lesstion", editingLesson)
         } else {
           return; // Stop if upload failed
         }
       }
+      console.log(">>>>> check payload: ", lessonPayload);
       if (editingLesson) {
         // Update lesson basic info
         const updateRes = await callUpdateLesson(editingLesson._id, lessonPayload);
-        console.log('updateLesson response:', updateRes);
 
         // Upsert lesson detail
         if (lessonDetailId) {
@@ -275,7 +277,6 @@ const LessonsManagement = () => {
               phonetic,
               lessonId: editingLesson._id,
             });
-            console.log('updateLessonDetail response:', updDetailRes);
           } catch (e) {
             console.error('Failed to update lesson detail', e);
             toast.error('Failed to update lesson content');
@@ -288,7 +289,6 @@ const LessonsManagement = () => {
               phonetic,
               lessonId: editingLesson._id,
             });
-            console.log('createLessonDetail response:', createDetailRes);
             const created = createDetailRes?.data?.data;
             if (created && created._id) setLessonDetailId(created._id);
           } catch (e) {
@@ -301,7 +301,6 @@ const LessonsManagement = () => {
         for (const vid of removedVocabIds) {
           try {
             const delRes = await callDeleteVocabulary(vid);
-            console.log('deleteVocabulary response for', vid, delRes);
           } catch (e) {
             console.warn("Failed to delete vocab", vid, e);
             toast.error(`Failed to delete vocabulary ${vid}`);
@@ -322,14 +321,12 @@ const LessonsManagement = () => {
           const validNewVocs = newVocs.filter((v) => v.word && v.englishMeaning);
           try {
             const batchRes = await callCreateVocabulariesBatch(validNewVocs);
-            console.log('createVocabulariesBatch response for new items:', batchRes);
           } catch (e) {
             console.error('Failed to create new vocabularies batch', e);
             // fallback to per-item creates
             for (const nv of validNewVocs) {
               try {
                 const resV = await callCreateVocabulary(nv);
-                console.log('createVocabulary response for new item:', resV);
               } catch (err) {
                 console.error('Failed to create vocab item', nv, err);
               }
@@ -348,7 +345,6 @@ const LessonsManagement = () => {
               exampleSentence: v.example,
               lessonId: editingLesson._id,
             });
-            console.log('updateVocabulary response for', v.id, updVRes);
           } catch (e) {
             console.warn("Failed to update vocab", v.id, e);
             toast.error(`Failed to update word ${v.word}`);
@@ -359,7 +355,6 @@ const LessonsManagement = () => {
       } else {
         // Create new lesson
         const res = await callCreateLesson(lessonPayload as any);
-        console.log(">>>>>> check res: ", res);
         // handle different possible response shapes
         const createdLesson = (res?.data?.data ?? res?.data) as ILesson | any | undefined;
         const lessonId = createdLesson?._id || createdLesson?.id || createdLesson?.lessonId;
@@ -373,7 +368,6 @@ const LessonsManagement = () => {
               phonetic,
               lessonId,
             });
-            console.log("createLessonDetail response:", detailRes);
             const createdDetail = detailRes?.data?.data ?? detailRes?.data;
             const createdDetailId = createdDetail?._id || createdDetail?.id;
             if (createdDetailId) {
@@ -394,19 +388,16 @@ const LessonsManagement = () => {
               lessonId,
             }));
 
-          console.log('validVocs to create (batch):', validVocs);
 
           if (validVocs.length) {
             try {
               const batchRes = await callCreateVocabulariesBatch(validVocs);
-              console.log('createVocabulariesBatch response:', batchRes);
             } catch (e) {
               console.error('Failed to create vocabularies batch', e);
               // fallback: try creating individually
               for (const vv of validVocs) {
                 try {
                   const resV = await callCreateVocabulary(vv);
-                  console.log('createVocabulary response for', vv, resV);
                 } catch (err) {
                   console.error('Failed to create vocab', vv, err);
                 }
@@ -462,7 +453,7 @@ const LessonsManagement = () => {
       const file = files[0];
       if (file.type.startsWith('video/')) {
         setVideoFile(file);
-        setFormData(prev => ({ ...prev, video_url: "" }));
+        setFormData(prev => ({ ...prev, videourl: "" }));
       } else {
         toast.error("Please upload a video file");
       }
@@ -475,7 +466,7 @@ const LessonsManagement = () => {
       const file = files[0];
       if (file.type.startsWith('video/')) {
         setVideoFile(file);
-        setFormData(prev => ({ ...prev, video_url: "" }));
+        setFormData(prev => ({ ...prev, videourl: "" }));
       } else {
         toast.error("Please upload a video file");
       }
@@ -484,7 +475,7 @@ const LessonsManagement = () => {
 
   const removeVideo = () => {
     setVideoFile(null);
-    setFormData(prev => ({ ...prev, video_url: "" }));
+    setFormData(prev => ({ ...prev, videourl: "" }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -494,6 +485,8 @@ const LessonsManagement = () => {
     try {
       setIsUploading(true);
       const res = await callUploadFile(file, "video");
+      setTime(res.data.durationFormatted);
+      setDurationSeconds(res.data.durationSeconds);
       return res.data.fileName;
     } catch (error) {
       console.error("Error uploading video:", error);
@@ -717,52 +710,52 @@ const LessonsManagement = () => {
             {/* TAB 1: INFORMATION */}
             <TabsContent value="info" className="space-y-6 pt-8">
               <div className="flex gap-4">
-  {/* Cột 1: Level */}
-  <div className="flex-1">
-    <Label>Level*</Label>
-    <Select
-      value={formData.level}
-      onValueChange={(e) =>
-        setFormData({ ...formData, level: e })
-      }
-    >
-      <SelectTrigger className="mt-2">
-        <SelectValue placeholder="Choose lesson level" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="BEGINNER">
-          Beginner
-        </SelectItem>
-        <SelectItem value="INTERMEDIATE">
-          Intermediate
-        </SelectItem>
-        <SelectItem value="ADVANCE">
-          Advance
-        </SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
+                {/* Cột 1: Level */}
+                <div className="flex-1">
+                  <Label>Level*</Label>
+                  <Select
+                    value={formData.level}
+                    onValueChange={(e) =>
+                      setFormData({ ...formData, level: e })
+                    }
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Choose lesson level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BEGINNER">
+                        Beginner
+                      </SelectItem>
+                      <SelectItem value="INTERMEDIATE">
+                        Intermediate
+                      </SelectItem>
+                      <SelectItem value="ADVANCE">
+                        Advance
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-  {/* Cột 2: Lesson Title */}
-  <div className="flex-1">
-    <Label className="text-base">Lesson Title *</Label>
-    <Input
-      className="mt-2 text-lg"
-      value={formData.lessontitle}
-      onChange={(e) =>
-        setFormData({ ...formData, lessontitle: e.target.value })
-      }
-      placeholder="E.g.: Unit 1 - Greetings"
-    />
-  </div>
-</div>
+                {/* Cột 2: Lesson Title */}
+                <div className="flex-1">
+                  <Label className="text-base">Lesson Title *</Label>
+                  <Input
+                    className="mt-2 text-lg"
+                    value={formData.lessontitle}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lessontitle: e.target.value })
+                    }
+                    placeholder="E.g.: Unit 1 - Greetings"
+                  />
+                </div>
+              </div>
               <div>
                 <Label>Video</Label>
                 <div
                   className={`relative mt-2 border-2 border-dashed rounded-lg transition-all duration-200 ${isDragging
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/50 hover:bg-muted/30"
-                    } ${videoFile || formData.video_url ? "p-4" : "p-8"}`}
+                    } ${videoFile || formData.videourl ? "p-4" : "p-8"}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -797,14 +790,14 @@ const LessonsManagement = () => {
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-                  ) : formData.video_url ? (
+                  ) : formData.videourl ? (
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
                         <Video className="w-6 h-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">Current Video</p>
-                        <p className="text-sm text-muted-foreground truncate">{formData.video_url}</p>
+                        <p className="text-sm text-muted-foreground truncate">{formData.videourl}</p>
                       </div>
                       <Button
                         type="button"

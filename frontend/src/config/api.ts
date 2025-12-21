@@ -30,6 +30,10 @@ export const callGetAllUsers = (page = 0, size = 10, sort?: string) => {
     return axios.get<unknown>('/api/v1/users', { params: { page: oneIndexedPage, size, sort } });
 };
 
+export const callCountAllUsers = () =>{
+  return axios.get<{count: number}>('/api/v1/users/count/total');
+}
+
 // Create vocabularies in batch (controller expects POST /api/v1/vocabularies/batch)
 export const callCreateVocabulariesBatch = (
   data: Array<{
@@ -75,6 +79,17 @@ export const callGetGameDetail = (id: string) => {
     return axios.get<IBackendRes<IGame>>(`/api/v1/games/${id}`);
 };
 
+// game.api.ts
+export const getGameByLessonId = async (lessonId: number) => {
+  return axios.get("/games", {
+    params: {
+      filter: `lesson.id==${lessonId}`,
+      page: 0,
+      size: 1
+    }
+  });
+};
+
 // Tạo game mới
 export const callCreateGame = (data: {
     name: string;
@@ -97,12 +112,21 @@ export const callUpdateGame = (
     return axios.put<IBackendRes<IGame>>(`/api/v1/games/${id}`, data);
 };
 
-// Xóa game
 export const callDeleteGame = (id: string) => {
     return axios.delete<IBackendRes<string>>(`/api/v1/games/${id}`);
 };
+
+export const callCountAllGames = () =>{
+  return axios.get<{count: number}>('/api/v1/games/count/total');
+}
+
+
 //MODULE LESSONS
 const PREFIX_API = "api/v1/lessons";
+
+export const callCountAllLessons = () =>{
+  return axios.get<{count: number}>('/api/v1/lessons/count/total');
+}
 
 export const callFetchLessons = () => {
     return axios.get<IBackendRes<ILesson[]>>(`/${PREFIX_API}/all`);
@@ -207,6 +231,10 @@ export const callDeleteLessonDetail = (id: string) => {
   return axios.delete<IBackendRes<string>>(`/api/v1/lesson-details/${id}`);
 }
 
+export const callGetCompletedLessonsCount = () => {
+    return axios.get<number>('/api/v1//lessons/lessons-completed-count');
+}
+
 
 //MODULE CRUD POINT 
 export const callGetAllPoints = (page = 0, size = 10, sort?: string) => {
@@ -227,6 +255,16 @@ export const callSearchPoints = (data: IPointSearchRequest, page = 0, size = 10,
     return axios.post<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
 };
 
+// 1. Lấy tổng điểm tích lũy (Hiển thị con số 30)
+export const callGetTotalScore = (userId: string) => {
+    return axios.get<IBackendRes<number>>(`/api/v1/points/user/${userId}/total`);
+};
+
+// Lấy lịch sử của CHÍNH người dùng đang đăng nhập
+export const callGetMyHistory = () => {
+    return axios.get<IBackendRes<PointResponse[]>>('/api/v1/points/history');
+};
+
 // Mới: Start play to increment timesPlayed
 export const callStartPlayGame = (id: string) => {
     return axios.post<IBackendRes<void>>(`/api/v1/games/${id}/play`);
@@ -245,7 +283,7 @@ export const callCreatePoint = (data: {
 
 // Mới: Get user stats
 export const callGetUserStats = (userId: string) => {
-    return axios.get<IBackendRes<UserStatsResponse>>(`/api/v1/points/user/${userId}/stats`);
+    return axios.get<IBackendRes<UserStatsResponse>>(`/api/v1/points/user/${userId}/stats/game`);
 };
 
 //MODULE FILE UPLOAD
@@ -263,4 +301,9 @@ export const callUploadFile = (file: unknown, folderType: string) => {
           "Content-Type": "multipart/form-data",
       },
   });
+}
+
+//MODULE USER LESSONS
+export const callSaveProgress =(lessonId: string, seconds: number) => {
+  return axios.post<IBackendRes<unknown>>(`/api/v1/progress/save`, { lessonId, seconds });
 }

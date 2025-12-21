@@ -1,6 +1,7 @@
 package com.example.VietVibe.exception;
 
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -87,33 +88,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse> handlingValidation(MethodArgumentNotValidException exception) {
-        String enumKey = exception.getFieldError().getDefaultMessage().startsWith("must match")
-                ? "INVALID_PHONE_NUMBER"
-                : exception.getFieldError().getDefaultMessage();
+        // Tạo một Map để lưu thông tin lỗi
+        Map<String, Object> errors = new HashMap<>();
 
-        ErrorCode errorCode = ErrorCode.INVALID_KEY;
-        Map<String, Object> attributes = null;
-        try {
-            errorCode = ErrorCode.valueOf(enumKey);
+        // Lặp qua tất cả các lỗi validation
+        exception.getBindingResult().getFieldErrors().forEach(error -> {
+            Map<String, Object> fieldErrorDetails = new HashMap<>();
+            fieldErrorDetails.put("message", error.getDefaultMessage());
+            fieldErrorDetails.put("rejectedValue", error.getRejectedValue());
+            errors.put(error.getField(), fieldErrorDetails);
+        });
 
-            var constraintViolation = exception.getBindingResult().getAllErrors().getFirst()
-                    .unwrap(ConstraintViolation.class);
-
-            attributes = constraintViolation.getConstraintDescriptor().getAttributes();
-
-            log.info(attributes.toString());
-
-        } catch (IllegalArgumentException e) {
-
-        }
-
+        // Tạo ApiResponse để trả về
         ApiResponse apiResponse = new ApiResponse();
-
-        apiResponse.setStatusCode(errorCode.getCode());
-        apiResponse.setMessage(
-                Objects.nonNull(attributes)
-                        ? mapAttribute(errorCode.getMessage(), attributes)
-                        : errorCode.getMessage());
+        apiResponse.setStatusCode(ErrorCode.INVALID_KEY.getCode());
+        apiResponse.setMessage("Validation failed");
+        apiResponse.setData(errors); // Đính kèm thông tin lỗi vào response
 
         return ResponseEntity.badRequest().body(apiResponse);
     }

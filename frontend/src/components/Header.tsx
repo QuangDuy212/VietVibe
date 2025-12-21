@@ -70,15 +70,6 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLanguage(language === "en" ? "ja" : "en")}
-            className="gap-2"
-          >
-            <Globe className="h-4 w-4" />
-            {language === "en" ? "English" : "日本語"}
-          </Button>
           <Button variant="ghost" size="icon" asChild>
             <Link to="/profile">
               <User className="h-5 w-5" />
