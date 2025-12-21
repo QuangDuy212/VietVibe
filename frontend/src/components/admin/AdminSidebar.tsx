@@ -14,6 +14,7 @@ import { Users, BookOpen, Gamepad2, Award, Shield, TrendingUp } from "lucide-rea
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { callCountAllLessons, callCountAllUsers } from "@/config/api";
+import Dashboard from "./Dashboard";
 
 
 interface AdminSidebarProps {
@@ -34,7 +35,7 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
   const collapsed = state === "collapsed";
 
   const navItems = [
-    { id: "dashboard", title: "Dashboard", icon: Users },
+    { id: "dashboard", title: "Dashboard", icon: TrendingUp, count: null },
     { id: "users", title: "Users", icon: Users, count: countUsers },
     { id: "lessons", title: "Lessons", icon: BookOpen, count: countLessons },
     { id: "games", title: "Games", icon: Gamepad2, count: countGames },
