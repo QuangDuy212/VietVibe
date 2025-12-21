@@ -154,7 +154,6 @@ const LessonsManagement = () => {
 
   const openDialog = (lesson?: ILesson) => {
     if (lesson) {
-      console.log(">>>> check lesson: ", lesson)
       setEditingLesson(lesson);
       setFormData({
         lessontitle: lesson.lessontitle,

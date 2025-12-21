@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+
 import {
   Sidebar,
   SidebarContent,
@@ -10,11 +10,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Users, BookOpen, Gamepad2, Award, Shield, TrendingUp } from "lucide-react";
+import { Users, BookOpen, Gamepad2, Award, Shield, TrendingUp, Home } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import { callCountAllLessons, callCountAllUsers } from "@/config/api";
+import { callCountAllGames, callCountAllLessons, callCountAllUsers } from "@/config/api";
 import Dashboard from "./Dashboard";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../ui/button";
 
 
 interface AdminSidebarProps {
@@ -32,6 +34,7 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
   const [countLessons, setCountLessons]= useState(0);
   const [countGames, setCountGames]= useState(0);
   const { state } = useSidebar();
+  const navigate = useNavigate();
   const collapsed = state === "collapsed";
 
   const navItems = [
@@ -58,6 +61,7 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
 
   const fetchCountGames = async () =>{
     const res = await callCountAllGames();
+    console.log(res);
     if(res.statusCode == 200){
       setCountGames(res.data.count);
     }
@@ -194,6 +198,17 @@ export function AdminSidebar({ stats, activeTab, onTabChange }: AdminSidebarProp
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {/* Home Button */}
+        <div className={`mt-auto p-4 border-t border-border/50 ${collapsed ? "flex justify-center" : ""}`}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
+            className={`w-full gap-2 ${collapsed ? "p-2 w-auto" : ""}`}
+          >
+            <Home className="h-4 w-4" />
+            {!collapsed && <span>Về trang chủ</span>}
+          </Button>
+        </div>
       </SidebarContent>
     </Sidebar>
   );
