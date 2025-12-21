@@ -30,6 +30,10 @@ export const callGetAllUsers = (page = 0, size = 10, sort?: string) => {
     return axios.get<unknown>('/api/v1/users', { params: { page: oneIndexedPage, size, sort } });
 };
 
+export const callCountAllUsers = () =>{
+  return axios.get<{count: number}>('/api/v1/users/count/total');
+}
+
 // Create vocabularies in batch (controller expects POST /api/v1/vocabularies/batch)
 export const callCreateVocabulariesBatch = (
   data: Array<{
@@ -108,12 +112,21 @@ export const callUpdateGame = (
     return axios.put<IBackendRes<IGame>>(`/api/v1/games/${id}`, data);
 };
 
-// Xóa game
 export const callDeleteGame = (id: string) => {
     return axios.delete<IBackendRes<string>>(`/api/v1/games/${id}`);
 };
+
+export const callCountAllGames = () =>{
+  return axios.get<{count: number}>('/api/v1/games/count/total');
+}
+
+
 //MODULE LESSONS
 const PREFIX_API = "api/v1/lessons";
+
+export const callCountAllLessons = () =>{
+  return axios.get<{count: number}>('/api/v1/lessons/count/total');
+}
 
 export const callFetchLessons = () => {
     return axios.get<IBackendRes<ILesson[]>>(`/${PREFIX_API}/all`);

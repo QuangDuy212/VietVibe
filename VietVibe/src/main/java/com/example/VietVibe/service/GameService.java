@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import com.example.VietVibe.dto.request.GameCreationRequest;
 import com.example.VietVibe.dto.request.GameUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.PlayGameResponse;
 import com.example.VietVibe.entity.Answer;
@@ -68,25 +69,24 @@ public class GameService {
     }
 
     public GameResponse create(GameCreationRequest request) {
-    Game game = gameMapper.toGame(request);
+        Game game = gameMapper.toGame(request);
 
-    if (game.getQuestions() != null) {
-        game.getQuestions().forEach(q -> {
-            q.setGame(game);
+        if (game.getQuestions() != null) {
+            game.getQuestions().forEach(q -> {
+                q.setGame(game);
 
-            if (q.getAnswers() != null) {
-                q.getAnswers().forEach(a -> {
-                    a.setQuestion(q);
-                });
-            }
-        });
-        game.setTotalQuestion(game.getQuestions().size());
+                if (q.getAnswers() != null) {
+                    q.getAnswers().forEach(a -> {
+                        a.setQuestion(q);
+                    });
+                }
+            });
+            game.setTotalQuestion(game.getQuestions().size());
+        }
+
+        Game saved = gameRepository.save(game);
+        return gameMapper.toGameResponse(saved);
     }
-
-    Game saved = gameRepository.save(game);
-    return gameMapper.toGameResponse(saved);
-}
-
 
     @Transactional
     public GameResponse updateGame(Long id, GameUpdateRequest request) {
@@ -169,6 +169,11 @@ public class GameService {
         return pointRepository.findTopByGameOrderByScoreDesc(game)
                 .map(p -> p.getScore() + p.getBonus())
                 .orElse(0);
+    }
+
+    public CountElementResponse countGames() {
+        long count = this.gameRepository.count();
+        return CountElementResponse.builder().count(count).build();
     }
 
 }

@@ -13,6 +13,7 @@ import com.example.VietVibe.constant.PredefinedRole;
 import com.example.VietVibe.dto.request.UserCreationRequest;
 import com.example.VietVibe.dto.request.UserUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.UserResponse;
 import com.example.VietVibe.entity.User;
 import com.example.VietVibe.exception.AppException;
@@ -122,19 +123,7 @@ public class UserService {
                 userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
     }
 
-    // public List<UserResponse> saveFromFileExcel(MultipartFile file) {
-    // List<User> entites = new ArrayList<User>();
-    // try {
-    // List<User> data = userExcelImport.excelToStuList(file.getInputStream());
-    // entites = userRepository.saveAll(data);
-    // } catch (IOException ex) {
-    // throw new RuntimeException("Excel data is failed to store: " +
-    // ex.getMessage());
-    // }
-    // List<UserResponse> res =
-    // entites.stream().map(userMapper::toUserResponse).toList();
-    // return res;
-    // }
+    
 
     public User handleGetUserByUsername(String username) {
         return this.userRepository.findByUsername(username)
@@ -160,5 +149,13 @@ public class UserService {
 
     public User getUserByRefreshTokenAndUsername(String token, String username) {
         return this.userRepository.findByRefreshTokenAndUsername(token, username);
+    }
+
+    public CountElementResponse countAllUsers(){
+        log.info("Count all users");
+        long count = this.userRepository.count();
+        return CountElementResponse.builder()
+                .count(count)
+                .build();
     }
 }

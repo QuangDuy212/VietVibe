@@ -20,6 +20,7 @@ import com.example.VietVibe.dto.request.LessonCreationRequest;
 import com.example.VietVibe.dto.request.LessonUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
 import com.example.VietVibe.dto.response.ApiString;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.LessonResponse;
 import com.example.VietVibe.dto.response.UserResponse;
@@ -56,10 +57,10 @@ public class LessonController {
         return ResponseEntity.ok().body(this.lessonService.getAllLessonsPagination(spec, pageable));
     }
 
-    @GetMapping("/fetch/all")
-    @ApiMessage("Get all lessons (no paging) success")
-    ResponseEntity<List<LessonResponse>> getAllNoPaging() {
-        return ResponseEntity.ok().body(this.lessonService.getAllLessons());
+    @GetMapping("/count/total")
+    @ApiMessage("Count all lessons success")
+    ResponseEntity<CountElementResponse> countLessons() {
+        return ResponseEntity.ok().body(this.lessonService.countLessons());
     }
 
     @GetMapping("/{id}")

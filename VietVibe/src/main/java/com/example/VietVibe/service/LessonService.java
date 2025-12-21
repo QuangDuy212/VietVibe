@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import com.example.VietVibe.dto.request.LessonCreationRequest;
 import com.example.VietVibe.dto.request.LessonUpdateRequest;
 import com.example.VietVibe.dto.response.ApiPagination;
+import com.example.VietVibe.dto.response.CountElementResponse;
 import com.example.VietVibe.dto.response.GameResponse;
 import com.example.VietVibe.dto.response.LessonResponse;
 import com.example.VietVibe.dto.response.UserResponse;
@@ -160,6 +161,13 @@ public class LessonService {
         return ApiPagination.<LessonResponse>builder()
                 .meta(mt)
                 .result(listLesson)
+                .build();
+    }
+
+    public CountElementResponse countLessons() {
+        long count = this.lessonRepository.count();
+        return CountElementResponse.builder()
+                .count(count)
                 .build();
     }
 }

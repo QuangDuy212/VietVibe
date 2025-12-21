@@ -154,6 +154,7 @@ const LessonsManagement = () => {
 
   const openDialog = (lesson?: ILesson) => {
     if (lesson) {
+      console.log(">>>> check lesson: ", lesson)
       setEditingLesson(lesson);
       setFormData({
         lessontitle: lesson.lessontitle,
@@ -251,7 +252,7 @@ const LessonsManagement = () => {
         time: time,
         durationSeconds: durationSeconds,
       };
-      let videoUrl = formData.video_url;
+      let videoUrl = formData.videourl;
 
       // Upload video if a file is selected
       if (videoFile) {
@@ -452,7 +453,7 @@ const LessonsManagement = () => {
       const file = files[0];
       if (file.type.startsWith('video/')) {
         setVideoFile(file);
-        setFormData(prev => ({ ...prev, video_url: "" }));
+        setFormData(prev => ({ ...prev, videourl: "" }));
       } else {
         toast.error("Please upload a video file");
       }
@@ -465,7 +466,7 @@ const LessonsManagement = () => {
       const file = files[0];
       if (file.type.startsWith('video/')) {
         setVideoFile(file);
-        setFormData(prev => ({ ...prev, video_url: "" }));
+        setFormData(prev => ({ ...prev, videourl: "" }));
       } else {
         toast.error("Please upload a video file");
       }
@@ -474,7 +475,7 @@ const LessonsManagement = () => {
 
   const removeVideo = () => {
     setVideoFile(null);
-    setFormData(prev => ({ ...prev, video_url: "" }));
+    setFormData(prev => ({ ...prev, videourl: "" }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -754,7 +755,7 @@ const LessonsManagement = () => {
                   className={`relative mt-2 border-2 border-dashed rounded-lg transition-all duration-200 ${isDragging
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/50 hover:bg-muted/30"
-                    } ${videoFile || formData.video_url ? "p-4" : "p-8"}`}
+                    } ${videoFile || formData.videourl ? "p-4" : "p-8"}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -789,14 +790,14 @@ const LessonsManagement = () => {
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-                  ) : formData.video_url ? (
+                  ) : formData.videourl ? (
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
                         <Video className="w-6 h-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">Current Video</p>
-                        <p className="text-sm text-muted-foreground truncate">{formData.video_url}</p>
+                        <p className="text-sm text-muted-foreground truncate">{formData.videourl}</p>
                       </div>
                       <Button
                         type="button"
