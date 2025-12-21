@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { callFetchLessonsPaginated } from "@/config/api";
-import { ILesson } from "@/types/common.type";
 
 export interface LessonWithProgress {
   _id: string;
@@ -26,51 +25,43 @@ export const useLessons = (pageSize: number = 5) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
-  const extractPage = (res: any) => {
-    const d = res?.data ?? res;
-
-    if (d?.result && d?.meta) {
-      return {
-        content: d.result,
-        totalPages: d.meta.pages ?? 1,
-        totalElements: d.meta.total ?? 0,
-        number: typeof d.meta.current === "number" ? d.meta.current : 1,
-      };
-    }
-
-    const payload = d?.data ?? d;
-    const pageObj = payload?.content ? payload : d;
-    return {
-      content: pageObj?.content ?? pageObj?.data ?? [],
-      totalPages: pageObj?.totalPages ?? pageObj?.pages ?? 1,
-      totalElements: pageObj?.totalElements ?? pageObj?.total ?? 0,
-      number: pageObj?.number ?? (pageObj?.current ?? 1),
-    };
-  };
+  // Thêm state để lưu số bài hoàn thành thực tế trên toàn hệ thống
+  const [globalCompletedCount, setGlobalCompletedCount] = useState<number>(0);
 
   const fetchLessons = useCallback(async (p?: number) => {
     try {
       setLoading(true);
       setError(null);
 
-      if (typeof p === "number") {
-        setPage(p);
-      }
       const usePage = typeof p === "number" ? p : page;
 
+      // 1. Fetch dữ liệu phân trang cho danh sách hiển thị
       const response = await callFetchLessonsPaginated(usePage, pageSize);
-      if(response.statusCode !== 200) {
+      
+      if (response.statusCode !== 200) {
         throw new Error("Non-200 response");
       }
-      const pageNumber = response.data.meta.current;
+
       setLessons(response.data.result);
       setTotalPages(response.data.meta.pages);
       setTotalElements(response.data.meta.total);
-
-      if (page !== pageNumber) {
-        setPage(pageNumber);
+      
+      const pageNumberFromApi = response.data.meta.current;
+      if (page !== pageNumberFromApi) {
+        setPage(pageNumberFromApi);
       }
+
+      // 2. Fetch dữ liệu tổng quát để đếm số bài hoàn thành (Giống logic Profile)
+      // Chúng ta fetch 100 bài để đảm bảo quét hết các bài đã làm ở các trang khác
+      const resFull = await callFetchLessonsPaginated(1, 100);
+      if (resFull?.data?.result) {
+        const allLessons = resFull.data.result as any[];
+        const count = allLessons.filter(
+          (l) => l.progress === 100 || l.completed === true
+        ).length;
+        setGlobalCompletedCount(count);
+      }
+
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to fetch lessons");
       console.error("❌ Fetch lessons error:", err);
@@ -91,27 +82,34 @@ export const useLessons = (pageSize: number = 5) => {
           : lesson
       )
     );
+    // Nếu cập nhật bài học thành 100%, tăng số lượng tổng lên
+    if (progress === 100) {
+      setGlobalCompletedCount(prev => prev + 1);
+    }
   }, []);
 
+  // Sửa: Tính % dựa trên số lượng tổng (Global)
   const getOverallProgress = useCallback(() => {
     if (totalElements === 0) return 0;
-    const completed = lessons.filter(l => l.completed).length;
-    return Math.round((completed / totalElements) * 100);
-  }, [lessons, totalElements]);
+    return Math.round((globalCompletedCount / totalElements) * 100);
+  }, [globalCompletedCount, totalElements]);
 
+  // Sửa: Trả về stats dựa trên số lượng tổng (Global)
   const getStats = useCallback(() => {
-    const completedLessons = lessons.filter(l => l.progress === 100);
+    // Lưu ý: totalExercises và hoursSpent vẫn tính trên 5 bài hiện tại (có thể sửa nếu cần)
     const totalExercises = lessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
-    const completedExercises = completedLessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
+    const completedExercises = lessons
+      .filter(l => l.progress === 100)
+      .reduce((sum, lesson) => sum + lesson.exercises, 0);
 
     return {
-      completedLessons: completedLessons.length,
+      completedLessons: globalCompletedCount, // Dùng số tổng đã tính ở fetchLessons
       totalLessons: totalElements,
       totalExercises,
       completedExercises,
       hoursSpent: Math.round(lessons.reduce((sum, lesson) => sum + (lesson.exercises * 0.01), 0))
     };
-  }, [lessons, totalElements]);
+  }, [lessons, totalElements, globalCompletedCount]);
 
   const goPrev = () => setPage((prev) => Math.max(1, prev - 1));
   const goNext = () => setPage((prev) => Math.min(prev + 1, totalPages));

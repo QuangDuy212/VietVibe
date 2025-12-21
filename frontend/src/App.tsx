@@ -23,14 +23,10 @@ const App = () => {
   const isLoading = useAppSelector((state) => state.account.isLoading);
 
   useEffect(() => {
-    if (
-      window.location.pathname === "/login" ||
-      window.location.pathname === "/register"
-    )
-      return;
-    dispatch(fetchAccount());
-
-    let oldRefreshToken: unknown = null;
+    const publicPaths = ["/login", "/register", "/auth"];
+    const currentPath = window.location.pathname;
+  
+    // 1. Hàm lấy cookie
     const getCookieValue = (name: string) => {
       const cookies = document.cookie.split("; ");
       for (const cookie of cookies) {
@@ -39,23 +35,49 @@ const App = () => {
       }
       return null;
     };
+  
+    const refreshToken = getCookieValue("refresh_token");
+  
+    // 2. Kiểm tra ngay lập tức khi vào app
+    if (!refreshToken && !publicPaths.includes(currentPath)) {
+      // Nếu không có token và không ở trang public -> Chuyển về auth
+      window.location.href = "/auth"; 
+      return;
+    }
+  
+    if (refreshToken && currentPath === "/auth") {
+      // Nếu đã có token mà vẫn ở auth -> Chuyển về home
+      window.location.href = "/";
+      return;
+    }
+  
+    // 3. Nếu đã đăng nhập, fetch thông tin user
+    if (refreshToken) {
+      dispatch(fetchAccount());
+    }
+  
+    // 4. Interval để theo dõi việc logout ở tab khác hoặc hết hạn token
+    let oldRefreshToken = refreshToken;
     const interval = setInterval(() => {
-      if (window.location.pathname === "/") {
-        const refreshToken = getCookieValue("refresh_token");
-        if (oldRefreshToken !== null && refreshToken !== oldRefreshToken) {
-          console.log("Refresh token has changed. Redirecting to login...");
-          localStorage.removeItem("access_token");
-          document.location.href = "/auth";
-        }
-        oldRefreshToken = refreshToken;
+      const currentToken = getCookieValue("refresh_token");
+      const path = window.location.pathname;
+  
+      // Nếu bỗng dưng mất token (người dùng logout ở tab khác)
+      if (!currentToken && !publicPaths.includes(path)) {
+        localStorage.removeItem("access_token");
+        window.location.href = "/auth";
       }
-      const refreshToken = getCookieValue("refresh_token");
-      if (refreshToken && window.location.pathname === "/auth") {
-        document.location.href = "/";
+  
+      // Nếu token thay đổi (đăng nhập bằng user khác)
+      if (oldRefreshToken && currentToken && oldRefreshToken !== currentToken) {
+        window.location.reload(); // Load lại để cập nhật data mới
       }
-    }, 500);
+      
+      oldRefreshToken = currentToken;
+    }, 1000); // 1 giây kiểm tra 1 lần là đủ, tránh tốn hiệu năng
+  
     return () => clearInterval(interval);
-  }, []);
+  }, [dispatch]);
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
