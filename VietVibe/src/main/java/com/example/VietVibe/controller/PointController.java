@@ -3,6 +3,12 @@ package com.example.VietVibe.controller;
 import com.example.VietVibe.entity.Point;
 
 import com.turkraft.springfilter.boot.Filter;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.jpa.domain.Specification;
 import com.example.VietVibe.dto.request.PointRequest;
 import com.example.VietVibe.dto.request.PointSearchRequest;
@@ -26,10 +32,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/points")
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class PointController {
 
-    @Autowired
-    private PointService pointService;
+    PointService pointService;
 
     @GetMapping
     public ResponseEntity<ApiPagination<PointResponse>> getAllPoints(@Filter Specification<Point> spec,
@@ -89,6 +97,7 @@ public class PointController {
         String currentUserId = authentication.getName();
         return ResponseEntity.ok(pointService.getHistory(currentUserId));
     }
+
 
     // Mới: Add point khi chơi xong
     @PostMapping("/add")

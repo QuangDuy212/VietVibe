@@ -218,6 +218,10 @@ export const callDeleteLessonDetail = (id: string) => {
   return axios.delete<IBackendRes<string>>(`/api/v1/lesson-details/${id}`);
 }
 
+export const callGetCompletedLessonsCount = () => {
+    return axios.get<number>('/api/v1//lessons/lessons-completed-count');
+}
+
 
 //MODULE CRUD POINT 
 export const callGetAllPoints = (page = 0, size = 10, sort?: string) => {
@@ -236,6 +240,16 @@ export const callDeletePoint = (pointId: number) => {
 export const callSearchPoints = (data: IPointSearchRequest, page = 0, size = 10, sort?: string) => {
     const oneIndexedPage = Math.max(1, page + 1);
     return axios.post<IBackendRes<IPaginationRes<PointResponse>>>('/api/v1/points/search', data, { params: { page: oneIndexedPage, size, sort } });
+};
+
+// 1. Lấy tổng điểm tích lũy (Hiển thị con số 30)
+export const callGetTotalScore = (userId: string) => {
+    return axios.get<IBackendRes<number>>(`/api/v1/points/user/${userId}/total`);
+};
+
+// Lấy lịch sử của CHÍNH người dùng đang đăng nhập
+export const callGetMyHistory = () => {
+    return axios.get<IBackendRes<PointResponse[]>>('/api/v1/points/history');
 };
 
 // Mới: Start play to increment timesPlayed

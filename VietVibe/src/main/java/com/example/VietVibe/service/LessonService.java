@@ -162,4 +162,16 @@ public class LessonService {
                 .result(listLesson)
                 .build();
     }
+
+    public long getCountCompletedLessons() {
+        String username = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null) {
+
+                return userLessonRepository.countByUserIdAndProgessGreaterThanEqual(user.getId(), 100.0f);
+            }
+        }
+        return 0;
+    }
 }

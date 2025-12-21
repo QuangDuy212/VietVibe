@@ -81,5 +81,9 @@ public class LessonController {
     ResponseEntity<LessonResponse> updateLesson(@PathVariable String id, @RequestBody LessonUpdateRequest request) {
         return ResponseEntity.ok().body(this.lessonService.update(id, request));
     }
+    @GetMapping("/lessons-completed-count")
+    public ResponseEntity<Long> getCompletedCount() {
+        return ResponseEntity.ok(lessonService.getCountCompletedLessons());
+    }
 
 }
