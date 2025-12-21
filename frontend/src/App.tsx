@@ -50,14 +50,7 @@ const App = () => {
         oldRefreshToken = refreshToken;
       }
       const refreshToken = getCookieValue("refresh_token");
-      // if (refreshToken && window.location.pathname === "/auth") {
-      //   document.location.href = "/";
-      // }
-      if (
-        refreshToken &&
-        window.location.pathname === "/auth" &&
-        localStorage.getItem("access_token")
-      ) {
+      if (refreshToken && window.location.pathname === "/auth") {
         document.location.href = "/";
       }
     }, 500);
