@@ -415,6 +415,14 @@ const LessonsManagement = () => {
       setRemovedVocabIds([]);
       setLessonDetailId(null);
       setDialogOpen(false);
+      setVideoFile(null);
+      setEditingLesson(null);
+      setFormData({ lessontitle: "", videourl: "", description: "" });
+      setVocabularies([]);
+      setGrammar("");
+      setVocab("");
+      setPhonetic("");
+      setVideoFile(null);
       fetchLessons();
     } catch (error) {
       toast.error("An error occurred!");
