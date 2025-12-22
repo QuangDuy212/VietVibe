@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8000
   servlet:
     context-path: /api/v1
 spring:
@@ -13,8 +13,7 @@ spring:
       max-request-size: 2048MB
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3308/VietVibe?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    # url: jdbc:mysql://localhost:3306/vietvibe
+    url: jdbc:mysql://localhost:3306/VietVibe?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: 1012004
     # password: 1234
@@ -34,4 +33,4 @@ auth:
     refresh-token-validity-in-seconds: 8640000
 upload:
   file:
-    uri: file:///E:/Project/VietVibe/upload/
+    uri: file:///D:/Project/VietVibe/upload/
