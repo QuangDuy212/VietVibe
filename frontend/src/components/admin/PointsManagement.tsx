@@ -141,7 +141,7 @@ const PointsManagement = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+const handleSave = async () => {
     if (!editing) return;
     try {
       const currentBonus = editing.bonus ?? 0;
@@ -165,8 +165,11 @@ const PointsManagement = () => {
       toast.success("Cập nhật điểm thành công");
       setDialogOpen(false);
       setEditing(null);
-      // refresh current page (no arg required)
-      fetchPoints();
+      if (isSearching) {
+        handleSearch(page);
+      } else {
+        fetchPoints();
+      }
     } catch (err) {
       console.error(err);
       toast.error("Cập nhật thất bại");
@@ -182,21 +185,24 @@ const PointsManagement = () => {
   };
 
   const handleDelete = async (id: number) => {
-    try {
-      await callDeletePoint(id);
-      toast.success("Xóa điểm thành công");
-      // nếu xóa item trên trang cuối khiến trang rỗng, kéo về trang trước
-      const isLastItemOnPage = points.length === 1 && page > 0;
-      if (isLastItemOnPage) {
-        setPage((prev) => Math.max(0, prev - 1));
+  try {
+    await callDeletePoint(id);
+    toast.success("Xóa điểm thành công");
+    const isLastItemOnPage = points.length === 1 && page > 0;
+    if (isLastItemOnPage) {
+      setPage((prev) => Math.max(0, prev - 1));
+    } else {
+      if (isSearching) {
+        handleSearch(page);
       } else {
         fetchPoints();
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Xóa thất bại");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    toast.error("Xóa thất bại");
+  }
+};
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
