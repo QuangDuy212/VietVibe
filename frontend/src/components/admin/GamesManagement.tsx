@@ -421,7 +421,7 @@ const GamesManagement = () => {
                         updateGameField("type", value as Game["type"])
                       }
                     >
-                      <SelectTrigger className="mt-2">
+                      <SelectTrigger>
                         <SelectValue placeholder="Choose game type" />
                       </SelectTrigger>
                       <SelectContent>
