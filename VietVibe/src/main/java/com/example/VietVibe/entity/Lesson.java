@@ -47,9 +47,6 @@ public class Lesson {
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
     List<UserLesson> userLessons;
 
-    @OneToOne(mappedBy = "lesson")
-    Game game;
-
     @JsonManagedReference
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Vocabulary> vocabularies;
