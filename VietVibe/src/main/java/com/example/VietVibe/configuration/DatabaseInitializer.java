@@ -28,6 +28,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             adminUser.setName("admin");
             adminUser.setPassword(this.passwordEncoder.encode("123456"));
             adminUser.setRole("ADMIN");
+            adminUser.setDeleted(false);
 
             this.userRepository.save(adminUser);
         }

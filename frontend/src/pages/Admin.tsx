@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import UsersManagement from "@/components/admin/UsersManagement";
+import CreateUser from "@/components/admin/CreateUser";
+import UpdateUser, { UserItem } from "@/components/admin/UpdateUser";
 import LessonsManagement from "@/components/admin/LessonsManagement";
 import GamesManagement from "@/components/admin/GamesManagement";
 import { toast } from "sonner";
@@ -13,6 +15,9 @@ import Dashboard from "@/components/admin/Dashboard";
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Overview of system activity and performance" },
   users: { title: "Manage Users", subtitle: "Create, manage, and organize all users" },
+  "create-user": { title: "Add New User", subtitle: "Register a new user account" },
+  "edit-user": { title: "Edit User", subtitle: "Modify user account details" },
+  "view-user": { title: "User Details", subtitle: "View user information" },
   lessons: { title: "Manage Lessons", subtitle: "Create, manage, and organize lessons and vocabulary" },
   games: { title: "Manage Games", subtitle: "Create, manage, and organize all games" },
   points: { title: "Points & Rewards", subtitle: "Manage point transactions and reward rules" },
@@ -23,11 +28,15 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const user = useAppSelector(state => state.account.user);
+  const isAccountLoading = useAppSelector(state => state.account.isLoading);
 
   useEffect(() => {
-    checkAdminStatus();
-  }, []);
+    if (!isAccountLoading) {
+      checkAdminStatus();
+    }
+  }, [isAccountLoading, user.role]);
 
   const checkAdminStatus = async () => {
     try {
@@ -46,7 +55,7 @@ const Admin = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isAccountLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -62,7 +71,14 @@ const Admin = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard": return <Dashboard />;
-      case "users": return <UsersManagement />;
+      case "users": return <UsersManagement 
+        onCreateUser={() => setActiveTab("create-user")} 
+        onEditUser={(user) => { setSelectedUser(user); setActiveTab("edit-user"); }}
+        onViewUser={(user) => { setSelectedUser(user); setActiveTab("view-user"); }}
+      />;
+      case "create-user": return <CreateUser onBack={() => setActiveTab("users")} />;
+      case "edit-user": return <UpdateUser mode="edit" user={selectedUser} onBack={() => { setActiveTab("users"); setSelectedUser(null); }} />;
+      case "view-user": return <UpdateUser mode="view" user={selectedUser} onBack={() => { setActiveTab("users"); setSelectedUser(null); }} />;
       case "lessons": return <LessonsManagement />;
       case "games": return <GamesManagement />;
       case "points": return <PointsManagement />;

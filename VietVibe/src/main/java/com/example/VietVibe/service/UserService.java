@@ -106,7 +106,7 @@ public class UserService {
             if (deleted != null) {
                 return cb.equal(root.get("deleted"), deleted);
             }
-            return cb.or(cb.isFalse(root.get("deleted")), cb.isNull(root.get("deleted")));
+            return cb.conjunction();
         };
 
         Specification<User> finalSpec = spec != null ? Specification.where(statusSpec).and(spec) : statusSpec;
@@ -202,8 +202,6 @@ public class UserService {
             }
             if (deleted != null) {
                 p = cb.and(p, cb.equal(root.get("deleted"), deleted));
-            } else {
-                p = cb.and(p, cb.or(cb.isFalse(root.get("deleted")), cb.isNull(root.get("deleted"))));
             }
             return p;
         };
