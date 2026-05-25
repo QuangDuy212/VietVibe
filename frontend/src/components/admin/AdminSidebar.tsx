@@ -11,24 +11,33 @@ import {
 import { Users, BookOpen, Gamepad2, Award, TrendingUp, Home, LayoutDashboard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { callCountAllGames, callCountAllLessons, callCountAllUsers } from "@/config/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-interface AdminSidebarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-}
-
-export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
+export function AdminSidebar() {
   const { state } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
   const collapsed = state === "collapsed";
+  
+  const currentPath = location.pathname.replace(/\/$/, '');
+  
+  const getActiveId = () => {
+    if (currentPath === "/admin") return "dashboard";
+    if (currentPath.startsWith("/admin/users") || currentPath.startsWith("/admin/create-user") || currentPath.startsWith("/admin/edit-user") || currentPath.startsWith("/admin/view-user")) return "users";
+    if (currentPath.startsWith("/admin/lessons")) return "lessons";
+    if (currentPath.startsWith("/admin/games")) return "games";
+    if (currentPath.startsWith("/admin/points")) return "points";
+    return "dashboard";
+  };
+  
+  const activeTab = getActiveId();
 
   const navItems = [
-    { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
-    { id: "users", title: "Users", icon: Users },
-    { id: "lessons", title: "Lessons", icon: BookOpen },
-    { id: "games", title: "Games", icon: Gamepad2 },
-    { id: "points", title: "Points & Rewards", icon: Award },
+    { id: "dashboard", title: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+    { id: "users", title: "Users", icon: Users, path: "/admin/users" },
+    { id: "lessons", title: "Lessons", icon: BookOpen, path: "/admin/lessons" },
+    { id: "games", title: "Games", icon: Gamepad2, path: "/admin/games" },
+    { id: "points", title: "Points & Rewards", icon: Award, path: "/admin/points" },
   ];
 
   return (
@@ -63,7 +72,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
-                      onClick={() => onTabChange(item.id)}
+                      onClick={() => navigate(item.path)}
                       className={`
                         group relative flex items-center rounded-xl px-4 py-3.5 text-[15.5px] font-medium transition-all duration-150 cursor-pointer w-full
                         ${isActive

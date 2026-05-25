@@ -1,149 +1,94 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   callFetchLessonsPaginated,
-  callCreateLesson,
-  callUpdateLesson,
   callDeleteLesson,
-  callUploadFile,
-  callFetchVocbulary,
-  callFetchLessonDetail,
-  callUpdateLessonDetail,
-  callCreateLessonDetail,
-  callDeleteVocabulary,
-  callCreateVocabulariesBatch,
-  callCreateVocabulary,
-  callUpdateVocabulary,
-  callDeleteLessonDetail,
+  callRestoreLesson,
+  callCountAllLessons,
+  callCountActiveLessons,
+  callCountDeletedLessons
 } from "@/config/api";
-
-import { ILesson, IPaginationRes } from "@/types/common.type";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ILesson } from "@/types/common.type";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-
-import {
-  BookOpen,
-  Plus,
-  Edit,
-  Trash2,
-  User,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Eye,
-  FileText,
-  Upload,
-  Video,
-  X,
-} from "lucide-react";
+import { BookOpen, Plus, Edit, Trash2, User, Calendar, ChevronLeft, ChevronRight, Eye, RefreshCw, CheckCircle2, RotateCcw, MoreHorizontal, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import Lesson from "@/pages/Lesson";
 
-interface Vocabulary {
-  id: string;
-  word: string;
-  meaning: string;
-  example: string;
-}
-const levelColors = {
+const levelColors: Record<string, string> = {
   BEGINNER: "bg-secondary/10 text-secondary hover:bg-secondary/20",
   INTERMEDIATE: "bg-accent/10 text-accent hover:bg-accent/20",
   ADVANCE: "bg-primary/10 text-primary hover:bg-primary/20",
 };
-const LessonsManagement = () => {
-  const [viewOnly, setViewOnly] = useState(false);
 
+interface LessonsManagementProps {
+  onCreateLesson?: () => void;
+  onEditLesson?: (lesson: ILesson) => void;
+  onViewLesson?: (lesson: ILesson) => void;
+}
+
+const LessonsManagement = ({ onCreateLesson, onEditLesson, onViewLesson }: LessonsManagementProps) => {
   const [lessons, setLessons] = useState<ILesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<ILesson | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [actionTarget, setActionTarget] = useState<{
+    id: string;
+    label: string;
+    action: "delete" | "restore" | "bulkDelete" | "bulkRestore";
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalLessons, setTotalLessons] = useState(0);
-
-  const [formData, setFormData] = useState({
-    lessontitle: "",
-    videourl: "",
-    description: "",
-    level: "",
-  });
-
-  const [activeTab, setActiveTab] = useState("info");
-  const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
-  const [lessonDetailId, setLessonDetailId] = useState<string | null>(null);
-  const [removedVocabIds, setRemovedVocabIds] = useState<string[]>([]);
-
-  // Content: grammar, vocab, phonetic
-  const [grammar, setGrammar] = useState("");
-  const [vocab, setVocab] = useState("");
-  const [phonetic, setPhonetic] = useState("");
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [time, setTime] = useState("");
-  const [durationSeconds, setDurationSeconds] = useState(0);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "deleted">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stats, setStats] = useState({ total: 0, active: 0, deleted: 0 });
 
   useEffect(() => {
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
     fetchLessons();
-  }, [page, pageSize]);
+  }, [page, pageSize, activeTab, searchQuery]);
+
+  const fetchStats = async () => {
+    try {
+      const [total, active, deleted] = await Promise.all([
+        callCountAllLessons(),
+        callCountActiveLessons(),
+        callCountDeletedLessons()
+      ]);
+      setStats({
+        total: total?.data?.count || 0,
+        active: active?.data?.count || 0,
+        deleted: deleted?.data?.count || 0
+      });
+    } catch (e) {
+      console.error("Failed to fetch lesson stats", e);
+    }
+  };
 
   const fetchLessons = async () => {
     try {
       setLoading(true);
-      const res = await callFetchLessonsPaginated(page, pageSize);
+      let filterStr = "";
+      if (activeTab === "active") filterStr = `deleted:false`;
+      else if (activeTab === "deleted") filterStr = `deleted:true`;
+      
+      if (searchQuery) {
+        const titleQuery = `lessontitle~'${searchQuery}'`;
+        filterStr = filterStr ? `(${filterStr}) and (${titleQuery})` : titleQuery;
+      }
+
+      const res = await callFetchLessonsPaginated(page, pageSize, filterStr);
       if (res?.data) {
-        const data = res.data as unknown;
+        const data = res.data as unknown as { result: ILesson[], meta: { total: number } };
         setLessons(data.result || []);
         setTotalLessons(data.meta?.total || 0);
       }
@@ -154,933 +99,348 @@ const LessonsManagement = () => {
     }
   };
 
-  const openDialog = (lesson?: ILesson) => {
-    if (!lesson) {
-      setViewOnly(false);
-    }
-
-    if (lesson) {
-      setEditingLesson(lesson);
-      setFormData({
-        lessontitle: lesson.lessontitle,
-        videourl: lesson.videourl || "",
-        description: lesson.description || "",
-        level: lesson.level || "",
-      });
-
-      // Fetch vocabulary and lesson details from API
-      const fetchLessonData = async () => {
-        try {
-          const [vocabRes, detailRes] = await Promise.all([
-            callFetchVocbulary(lesson._id),
-            callFetchLessonDetail(lesson._id),
-          ]);
-
-          // Transform vocabulary data
-          const vocabData = vocabRes?.data || [];
-          const transformedVocab: Vocabulary[] = (
-            Array.isArray(vocabData) ? vocabData : []
-          ).map((item: any) => ({
-            id: item._id || `vocab-${Date.now()}`,
-            word: item.word,
-            meaning: item.englishMeaning,
-            example: item.exampleSentence,
-          }));
-          setVocabularies(transformedVocab);
-
-          // Load lesson details
-          const detailData = detailRes?.data || {};
-          setGrammar(detailData.gramma || "");
-          setVocab(detailData.vocab || "");
-          setPhonetic(detailData.phonetic || "");
-          setLessonDetailId(detailData._id || null);
-        } catch (error) {
-          console.error("Error fetching lesson data:", error);
-          setVocabularies([]);
-          setGrammar("");
-          setVocab("");
-          setPhonetic("");
-        }
-      };
-
-      fetchLessonData();
-    } else {
-      setEditingLesson(null);
-      setFormData({ lessontitle: "", videourl: "", description: "" });
-      setVocabularies([]);
-      setGrammar("");
-      setVocab("");
-      setPhonetic("");
-      setVideoFile(null);
-    }
-    setActiveTab("info");
-    setDialogOpen(true);
+  const toggleSelectAll = () => {
+    if (selectedIds.size === lessons.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(lessons.map((l) => l._id)));
   };
 
-  const addVocabulary = () => {
-    setVocabularies([
-      ...vocabularies,
-      { id: `new-${Date.now()}`, word: "", meaning: "", example: "" },
-    ]);
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedIds(newSelected);
   };
 
-  const updateVocab = (id: string, field: keyof Vocabulary, value: string) => {
-    setVocabularies(
-      vocabularies.map((v) => (v.id === id ? { ...v, [field]: value } : v))
-    );
+  const openConfirm = (id: string, label: string, action: "delete" | "restore") => {
+    setActionTarget({ id, label, action });
   };
 
-  const deleteVocab = (id: string) => {
-    // If it's a newly created local vocab, just remove it from the UI state
-    if (id.startsWith("new-")) {
-      setVocabularies((prev) => prev.filter((v) => v.id !== id));
-      return;
-    }
-
-    // For existing vocab, record its id for deletion on save and remove from UI
-    setRemovedVocabIds((prev) => [...prev, id]);
-    setVocabularies((prev) => prev.filter((v) => v.id !== id));
+  const openBulkConfirm = (action: "bulkDelete" | "bulkRestore") => {
+    setActionTarget({ id: "", label: `${selectedIds.size} lesson${selectedIds.size > 1 ? "s" : ""}`, action });
   };
 
-  const handleSave = async () => {
-    if (!formData.lessontitle.trim()) {
-      toast.error("Please enter a lesson title");
-      return;
-    }
+  const handleConfirmAction = async () => {
+    if (!actionTarget) return;
 
     try {
-      // Prepare basic lesson payload
-      const lessonPayload = {
-        lessontitle: formData.lessontitle,
-        videourl: formData.videourl,
-        description: formData.description,
-        level: formData.level,
-        time: time,
-        durationSeconds: durationSeconds,
-      };
-      let videoUrl = formData.videourl;
-
-      // Upload video if a file is selected
-      if (videoFile) {
-        const uploadedUrl = await uploadVideo(videoFile);
-        if (uploadedUrl) {
-          lessonPayload.videourl = uploadedUrl;
-        } else {
-          return; // Stop if upload failed
-        }
+      if (actionTarget.action === "delete") {
+        await callDeleteLesson(actionTarget.id);
+        toast.success("Lesson moved to trash");
+      } else if (actionTarget.action === "restore") {
+        await callRestoreLesson(actionTarget.id);
+        toast.success("Lesson restored");
+      } else if (actionTarget.action === "bulkDelete") {
+        await Promise.all([...selectedIds].map((id) => callDeleteLesson(id)));
+        toast.success(`${selectedIds.size} lesson(s) moved to trash`);
+      } else if (actionTarget.action === "bulkRestore") {
+        await Promise.all([...selectedIds].map((id) => callRestoreLesson(id)));
+        toast.success(`${selectedIds.size} lesson(s) restored`);
       }
-      console.log(">>>>> check payload: ", lessonPayload);
-      if (editingLesson) {
-        // Update lesson basic info
-        const updateRes = await callUpdateLesson(
-          editingLesson._id,
-          lessonPayload
-        );
-
-        // Upsert lesson detail
-        if (lessonDetailId) {
-          try {
-            const updDetailRes = await callUpdateLessonDetail(lessonDetailId, {
-              gramma: grammar,
-              vocab,
-              phonetic,
-              lessonId: editingLesson._id,
-            });
-          } catch (e) {
-            console.error("Failed to update lesson detail", e);
-            toast.error("Failed to update lesson content");
-          }
-        } else {
-          try {
-            const createDetailRes = await callCreateLessonDetail({
-              gramma: grammar,
-              vocab,
-              phonetic,
-              lessonId: editingLesson._id,
-            });
-            const created = createDetailRes?.data?.data;
-            if (created && created._id) setLessonDetailId(created._id);
-          } catch (e) {
-            console.error("Failed to create lesson detail", e);
-            toast.error("Failed to save lesson content");
-          }
-        }
-
-        // Delete removed vocabularies
-        for (const vid of removedVocabIds) {
-          try {
-            const delRes = await callDeleteVocabulary(vid);
-          } catch (e) {
-            console.warn("Failed to delete vocab", vid, e);
-            toast.error(`Failed to delete vocabulary ${vid}`);
-          }
-        }
-
-        // Create new vocabularies in batch if exist
-        const newVocs = vocabularies
-          .filter((v) => v.id.startsWith("new-"))
-          .map((v) => ({
-            word: v.word,
-            englishMeaning: v.meaning,
-            exampleSentence: v.example,
-            lessonId: editingLesson._id,
-          }));
-
-        if (newVocs.length) {
-          const validNewVocs = newVocs.filter(
-            (v) => v.word && v.englishMeaning
-          );
-          try {
-            const batchRes = await callCreateVocabulariesBatch(validNewVocs);
-          } catch (e) {
-            console.error("Failed to create new vocabularies batch", e);
-            // fallback to per-item creates
-            for (const nv of validNewVocs) {
-              try {
-                const resV = await callCreateVocabulary(nv);
-              } catch (err) {
-                console.error("Failed to create vocab item", nv, err);
-              }
-            }
-            toast.error("Failed to create some new vocabulary items");
-          }
-        }
-
-        // Update existing vocabularies
-        const existingVocs = vocabularies.filter(
-          (v) => !v.id.startsWith("new-")
-        );
-        for (const v of existingVocs) {
-          try {
-            const updVRes = await callUpdateVocabulary(v.id, {
-              word: v.word,
-              englishMeaning: v.meaning,
-              exampleSentence: v.example,
-              lessonId: editingLesson._id,
-            });
-          } catch (e) {
-            console.warn("Failed to update vocab", v.id, e);
-            toast.error(`Failed to update word ${v.word}`);
-          }
-        }
-
-        toast.success("Changes saved successfully!");
-      } else {
-        // Create new lesson
-        const res = await callCreateLesson(lessonPayload as any);
-        // handle different possible response shapes
-        const createdLesson = (res?.data?.data ?? res?.data) as
-          | ILesson
-          | any
-          | undefined;
-        const lessonId =
-          createdLesson?._id || createdLesson?.id || createdLesson?.lessonId;
-
-        if (lessonId) {
-          // Create lesson detail
-          try {
-            const detailRes = await callCreateLessonDetail({
-              gramma: grammar,
-              vocab,
-              phonetic,
-              lessonId,
-            });
-            const createdDetail = detailRes?.data?.data ?? detailRes?.data;
-            const createdDetailId = createdDetail?._id || createdDetail?.id;
-            if (createdDetailId) {
-              setLessonDetailId(createdDetailId);
-            }
-          } catch (e) {
-            console.error("Failed to create lesson detail", e);
-            toast.error("Failed to save lesson content");
-          }
-
-          // Create vocabularies in batch - filter out empty entries
-          const validVocs = vocabularies
-            .filter((v) => v.word.trim() && v.meaning.trim())
-            .map((v) => ({
-              word: v.word,
-              englishMeaning: v.meaning,
-              exampleSentence: v.example,
-              lessonId,
-            }));
-
-          if (validVocs.length) {
-            try {
-              const batchRes = await callCreateVocabulariesBatch(validVocs);
-            } catch (e) {
-              console.error("Failed to create vocabularies batch", e);
-              // fallback: try creating individually
-              for (const vv of validVocs) {
-                try {
-                  const resV = await callCreateVocabulary(vv);
-                } catch (err) {
-                  console.error("Failed to create vocab", vv, err);
-                }
-              }
-              toast.error("Failed to create some vocabulary items");
-            }
-          } else {
-            console.log("No valid vocabularies to create (all empty)");
-          }
-        }
-
-        toast.success("Lesson created successfully!");
-      }
-
-      // Cleanup and refresh
-      setRemovedVocabIds([]);
-      setLessonDetailId(null);
-      setDialogOpen(false);
-      setVideoFile(null);
-      setEditingLesson(null);
-      setFormData({ lessontitle: "", videourl: "", description: "" });
-      setVocabularies([]);
-      setGrammar("");
-      setVocab("");
-      setPhonetic("");
-      setVideoFile(null);
+      setSelectedIds(new Set());
       fetchLessons();
+      fetchStats();
     } catch (error) {
-      toast.error("An error occurred!");
+      toast.error("An error occurred while processing the request");
     }
+    setActionTarget(null);
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    try {
-      await callDeleteLesson(deleteId);
-      toast.success("Lesson successfully deleted!");
-      setDeleteId(null);
-      fetchLessons();
-    } catch (error) {
-      toast.error("Failed to delete lesson");
-    }
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith("video/")) {
-        setVideoFile(file);
-        setFormData((prev) => ({ ...prev, videourl: "" }));
-      } else {
-        toast.error("Please upload a video file");
-      }
-    }
-  }, []);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith("video/")) {
-        setVideoFile(file);
-        setFormData((prev) => ({ ...prev, videourl: "" }));
-      } else {
-        toast.error("Please upload a video file");
-      }
-    }
-  };
-
-  const removeVideo = () => {
-    setVideoFile(null);
-    setFormData((prev) => ({ ...prev, videourl: "" }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const uploadVideo = async (file: File): Promise<string | null> => {
-    try {
-      setIsUploading(true);
-      const res = await callUploadFile(file, "video");
-      setTime(res.data.durationFormatted);
-      setDurationSeconds(res.data.durationSeconds);
-      return res.data.fileName;
-    } catch (error) {
-      console.error("Error uploading video:", error);
-      toast.error("Failed to upload video");
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const totalPages = Math.ceil(totalLessons / pageSize);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center text-muted-foreground">
-          Loading...
-        </CardContent>
-      </Card>
-    );
-  }
+  const totalPages = Math.ceil(totalLessons / pageSize) || 1;
 
   return (
-    <>
-      {/* MAIN TABLE */}
-      <Card className="border-0 shadow-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Lessons List
-              </CardTitle>
-              <CardDescription>Manage your course content</CardDescription>
+    <div className="space-y-6">
+      {/* STATS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="rounded-xl border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Lessons</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats.total}</h3>
+                <p className="text-sm text-primary mt-2 font-medium">All registered lessons</p>
+              </div>
+              <div className="h-12 w-12 bg-blue-50 rounded-full flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-blue-500" />
+              </div>
             </div>
-            <Button
-              onClick={() => openDialog()}
-              className="gap-2 bg-red-500 hover:bg-red-600"
-            >
-              <Plus className="h-4 w-4" />
-              Add Lesson
-            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Active Lessons</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats.active}</h3>
+                <p className="text-sm text-green-600 mt-2 font-medium">Currently active</p>
+              </div>
+              <div className="h-12 w-12 bg-green-50 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Deleted Lessons</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats.deleted}</h3>
+                <p className="text-sm text-red-500 mt-2 font-medium">Moved to trash</p>
+              </div>
+              <div className="h-12 w-12 bg-red-50 rounded-full flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-red-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* MAIN TABLE */}
+      <Card className="border border-gray-200 shadow-sm rounded-xl">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle className="text-xl font-bold text-gray-900">Lesson Management</CardTitle>
+              <CardDescription className="text-gray-500 mt-1">Create, manage, and organize all lessons</CardDescription>
+            </div>
           </div>
+          
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-6">
+            <div className="flex items-center gap-2 bg-gray-50/80 p-1.5 rounded-full border border-gray-100">
+              {(["all", "active", "deleted"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setPage(1); }}
+                  className={`px-5 py-2 text-sm font-semibold rounded-full transition-all duration-200 capitalize ${
+                    activeTab === tab
+                      ? "bg-[#ff6b6b] text-white shadow-md shadow-[#ff6b6b]/20"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Input
+                placeholder="Search by title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-64 bg-gray-50/50 border-gray-200 rounded-xl"
+              />
+              <Button onClick={onCreateLesson} className="gap-2 rounded-xl bg-red-500 hover:bg-red-600 text-white shrink-0">
+                <Plus className="h-4 w-4" />
+                Add Lesson
+              </Button>
+            </div>
+          </div>
+
+          {/* Bulk Actions Banner */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 mt-4 px-5 py-3.5 rounded-xl bg-red-50 border border-red-100">
+              <span className="text-base font-semibold text-red-600">
+                {selectedIds.size} item{selectedIds.size > 1 ? "s" : ""} selected
+              </span>
+              <div className="ml-auto flex items-center gap-3">
+                {activeTab === "active" && (
+                  <Button onClick={() => openBulkConfirm("bulkDelete")} variant="outline" className="gap-2 rounded-xl text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 h-10 px-5 font-medium">
+                    <Trash2 className="h-5 w-5" /> Move to Trash
+                  </Button>
+                )}
+                {activeTab === "deleted" && (
+                  <Button onClick={() => openBulkConfirm("bulkRestore")} variant="outline" className="gap-2 rounded-xl text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 h-10 px-5 font-medium">
+                    <RotateCcw className="h-5 w-5" /> Restore
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </CardHeader>
 
         <CardContent>
-          <div className="rounded-xl border overflow-hidden">
+          <div className="rounded-xl border border-gray-100 overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Lesson Title</TableHead>
-                  <TableHead>Video URL</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Created Info</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="bg-gray-50/50 border-b border-gray-100">
+                  {activeTab !== "all" && (
+                    <TableHead className="w-[50px] pl-6 h-12">
+                      <Checkbox
+                        checked={lessons.length > 0 && selectedIds.size === lessons.length}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead className="text-sm font-semibold text-gray-600 h-12">Lesson Title</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-600 h-12">Video URL</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-600 h-12">Description</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-600 h-12">Level</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-600 h-12">Created</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-600 text-right pr-6 h-12">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lessons.map((lesson) => (
-                  <TableRow key={lesson._id} className="hover:bg-muted/30">
-                    <TableCell className="font-medium">
-                      {lesson.lessontitle}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">
-                      {lesson.videourl || "—"}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate text-muted-foreground">
-                      {lesson.description || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col text-xs text-muted-foreground gap-1">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />{" "}
-                          {lesson.createdBy || "admin"}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {lesson.createdAt
-                            ? format(new Date(lesson.createdAt), "dd/MM/yyyy")
-                            : "N/A"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <Badge className={levelColors[lesson.level]}>
-                        {lesson.level}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setViewOnly(true);
-                            openDialog(lesson);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setViewOnly(false);
-                            openDialog(lesson);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeleteId(lesson._id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={activeTab === "all" ? 6 : 7} className="h-32 text-center text-gray-500">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                        Loading lessons...
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : lessons.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={activeTab === "all" ? 6 : 7} className="text-center py-16 text-gray-400">
+                      <div className="flex flex-col items-center gap-2">
+                        <AlertTriangle className="h-8 w-8 text-gray-300" />
+                        <p className="text-sm">No lessons found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  lessons.map((lesson) => (
+                    <TableRow key={lesson._id} className={`border-b border-gray-100 transition-colors ${activeTab === "deleted" ? "bg-red-50/30" : "hover:bg-gray-50/50"}`}>
+                      {activeTab !== "all" && (
+                        <TableCell className="pl-6 py-4">
+                          <Checkbox
+                            checked={selectedIds.has(lesson._id)}
+                            onCheckedChange={() => toggleSelect(lesson._id)}
+                            aria-label={`Select ${lesson.lessontitle}`}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className="py-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="font-medium text-sm text-gray-900">{lesson.lessontitle}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 max-w-[150px] truncate text-muted-foreground text-sm">{lesson.videourl || "—"}</TableCell>
+                      <TableCell className="py-4 max-w-xs truncate text-muted-foreground text-sm">{lesson.description || "—"}</TableCell>
+                      <TableCell className="py-4">
+                        <Badge className={levelColors[lesson.level] || "bg-gray-100 text-gray-600"}>
+                          {lesson.level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4 text-sm text-gray-500">
+                        {lesson.createdAt ? format(new Date(lesson.createdAt), "dd/MM/yyyy") : "N/A"}
+                      </TableCell>
+                      <TableCell className="py-4 pr-6">
+                        <div className="flex items-center justify-end gap-1">
+                          {activeTab === "deleted" ? (
+                            <>
+                              <Button size="icon" variant="ghost" onClick={() => openConfirm(lesson._id, lesson.lessontitle, "restore")} className="h-8 w-8 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50" title="Restore Lesson">
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => openConfirm(lesson._id, lesson.lessontitle, "delete")} className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="Delete permanently">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="icon" variant="ghost" onClick={() => onViewLesson?.(lesson)} className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="View">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => onEditLesson?.(lesson)} className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="Edit">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => openConfirm(lesson._id, lesson.lessontitle, "delete")} className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="More">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
 
           {/* PAGINATION */}
-          <div className="flex items-center justify-between mt-6">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Show</span>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(v) => setPageSize(Number(v))}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">
-                of total {totalLessons}
-              </span>
-            </div>
+          {lessons.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+              <div className="text-xs text-gray-500">
+                Showing <span className="font-semibold text-gray-700">{lessons.length}</span> of{" "}
+                <span className="font-semibold text-gray-700">{totalLessons}</span> lessons
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  className="h-9 w-9 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(page - p) <= 1)
+                  .map((p, i, arr) => (
+                    <React.Fragment key={p}>
+                      {i > 0 && p - arr[i - 1] > 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`h-9 w-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-all ${
+                          page === p
+                            ? "bg-[#ff6b6b] text-white shadow-md transform scale-105"
+                            : "bg-white border border-gray-200 text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  ))}
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPage(page - 1)}
-                disabled={page === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm px-4">
-                Page {page} / {totalPages || 1}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPage(totalPages)}
-                disabled={page >= totalPages}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={page >= totalPages}
+                  className="h-9 w-9 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* DIALOG WITH 3 TABS */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">
-              {editingLesson ? "Edit Lesson" : "Create New Lesson"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingLesson
-                ? "View and edit lesson information"
-                : "Enter lesson information"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-3 rounded-full bg-muted">
-              <TabsTrigger
-                value="info"
-                className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
-              >
-                Information
-              </TabsTrigger>
-              <TabsTrigger
-                value="vocabulary"
-                className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
-              >
-                Vocabulary ({vocabularies.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="content"
-                className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
-              >
-                Content
-              </TabsTrigger>
-            </TabsList>
-
-            {/* TAB 1: INFORMATION */}
-            <TabsContent value="info" className="space-y-6 pt-8">
-              <div className="flex gap-4">
-                {/* Cột 1: Level */}
-                <div className="flex-1">
-                  <Label>Level*</Label>
-                  <Select
-                    value={formData.level}
-                    onValueChange={(e) =>
-                      setFormData({ ...formData, level: e })
-                    }
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Choose lesson level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BEGINNER">Beginner</SelectItem>
-                      <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
-                      <SelectItem value="ADVANCE">Advance</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Cột 2: Lesson Title */}
-                <div className="flex-1">
-                  <Label className="text-base">Lesson Title *</Label>
-                  <Input
-                    className="mt-2 text-lg"
-                    value={formData.lessontitle}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lessontitle: e.target.value })
-                    }
-                    placeholder="E.g.: Unit 1 - Greetings"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Video</Label>
-                <div
-                  className={`relative mt-2 border-2 border-dashed rounded-lg transition-all duration-200 ${
-                    isDragging
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50 hover:bg-muted/30"
-                  } ${videoFile || formData.videourl ? "p-4" : "p-8"}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="video-upload"
-                  />
-
-                  {videoFile ? (
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                        <Video className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{videoFile.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeVideo}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : formData.videourl ? (
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                        <Video className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">Current Video</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {formData.videourl}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeVideo}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="video-upload"
-                      className="flex flex-col items-center justify-center cursor-pointer"
-                    >
-                      <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3">
-                        <Upload className="w-6 h-6 text-primary" />
-                      </div>
-                      <p className="text-sm font-medium text-foreground mb-1">
-                        Drag and drop video here
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        or{" "}
-                        <span className="text-primary underline">
-                          click to browse
-                        </span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Supports: MP4, WebM, MOV, AVI
-                      </p>
-                    </label>
-                  )}
-
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-sm text-muted-foreground">
-                          Uploading...
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <Label className="text-base">Short Description</Label>
-                <Textarea
-                  className="mt-2 min-h-32"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Learn how to greet and introduce yourself"
-                />
-              </div>
-            </TabsContent>
-
-            {/* TAB 2: VOCABULARY */}
-            <TabsContent value="vocabulary" className="pt-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold">Vocabulary List</h3>
-                <Button
-                  onClick={addVocabulary}
-                  className="bg-red-500 hover:bg-red-600 text-white"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Add New Word
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                {vocabularies.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
-                    No vocabulary yet. Click the button above to add some!
-                  </div>
-                ) : (
-                  vocabularies.map((v) => (
-                    <div key={v.id} className="flex items-center gap-3">
-                      <Input
-                        value={v.word}
-                        onChange={(e) =>
-                          updateVocab(v.id, "word", e.target.value)
-                        }
-                        placeholder="Word"
-                        className="font-medium"
-                      />
-                      <Input
-                        value={v.meaning}
-                        onChange={(e) =>
-                          updateVocab(v.id, "meaning", e.target.value)
-                        }
-                        placeholder="Meaning"
-                      />
-                      <Input
-                        value={v.example}
-                        onChange={(e) =>
-                          updateVocab(v.id, "example", e.target.value)
-                        }
-                        placeholder="Example"
-                      />
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          const message = v.id.startsWith("new-")
-                            ? "Remove this word from the list?"
-                            : "Are you sure you want to delete this word? (will be deleted on server when saving)";
-                          if (window.confirm(message)) {
-                            deleteVocab(v.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            {/* TAB 3: CONTENT (Grammar, Vocab, Phonetic) */}
-            <TabsContent value="content" className="space-y-6 pt-6">
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Grammar
-                  </Label>
-                  {lessonDetailId ? (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={async () => {
-                        if (!lessonDetailId) return;
-                        const ok = window.confirm(
-                          "Are you sure you want to delete this lesson content?"
-                        );
-                        if (!ok) return;
-                        try {
-                          await callDeleteLessonDetail(lessonDetailId);
-                          setLessonDetailId(null);
-                          setGrammar("");
-                          setVocab("");
-                          setPhonetic("");
-                          toast.success("Lesson content successfully deleted");
-                        } catch (e) {
-                          console.error("Failed to delete lesson detail", e);
-                          toast.error("Failed to delete lesson content");
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Content
-                    </Button>
-                  ) : null}
-                </div>
-                <Textarea
-                  value={grammar}
-                  onChange={(e) => setGrammar(e.target.value)}
-                  placeholder="Write grammar notes...
-
-Ví dụ:
-- Câu giới thiệu: My name is + [tên]
-- Câu hỏi: What is your name?
-- Cấu trúc: I am + [tuổi] years old" // Keeping Vietnamese examples for context
-                  className="mt-2 min-h-48 text-base leading-relaxed"
-                />
-              </div>
-
-              <div>
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Vocabulary
-                </Label>
-                <Textarea
-                  value={vocab}
-                  onChange={(e) => setVocab(e.target.value)}
-                  placeholder="Write vocabulary content...
-
-Ví dụ:
-- Hello: xin chào
-- Name: tên
-- Nice: vui, tốt
-- Meet: gặp" // Keeping Vietnamese examples for context
-                  className="mt-2 min-h-48 text-base leading-relaxed"
-                />
-              </div>
-
-              <div>
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  🔊 Phonetic
-                </Label>
-                <Textarea
-                  value={phonetic}
-                  onChange={(e) => setPhonetic(e.target.value)}
-                  placeholder="Write phonetic notes...
-
-Ví dụ:
-- hello /həˈloʊ/
-- name /neɪm/
-- thank you /θæŋk juː/
-
-Lưu ý: Chú ý phát âm âm 'th' trong thank"
-                  className="mt-2 min-h-48 text-base leading-relaxed"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter className="mt-10">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="lg"
-              className="bg-red-500 hover:bg-red-600 text-white"
-              onClick={handleSave}
-              disabled={viewOnly}
-            >
-              {editingLesson ? "Save Changes" : "Create Lesson"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* DELETE ALERT */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+      <AlertDialog open={!!actionTarget} onOpenChange={() => setActionTarget(null)}>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this lesson? This action cannot be
-              undone.
+            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {actionTarget?.action === "restore" || actionTarget?.action === "bulkRestore" ? "Restore Lessons?" : "Move to Trash?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500 mt-2">
+              {actionTarget?.action === "delete" && `Are you sure you want to move "${actionTarget.label}" to trash?`}
+              {actionTarget?.action === "restore" && `Are you sure you want to restore "${actionTarget.label}"?`}
+              {actionTarget?.action === "bulkDelete" && `Are you sure you want to move ${actionTarget.label} to trash?`}
+              {actionTarget?.action === "bulkRestore" && `Are you sure you want to restore ${actionTarget.label}?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90"
+          <AlertDialogFooter className="mt-6 gap-2">
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmAction} 
+              className={`rounded-xl text-white ${
+                actionTarget?.action === "restore" || actionTarget?.action === "bulkRestore"
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-destructive"
+              }`}
             >
-              Delete
+              {actionTarget?.action === "restore" || actionTarget?.action === "bulkRestore" ? "Restore" : "Move to Trash"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 

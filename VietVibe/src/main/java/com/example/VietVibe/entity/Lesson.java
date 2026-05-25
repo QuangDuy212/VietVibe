@@ -44,6 +44,10 @@ public class Lesson {
     @Enumerated(EnumType.STRING)
     LessonLevel level;
 
+    @Builder.Default
+    @Column(name = "deleted")
+    boolean deleted = false;
+
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
     List<UserLesson> userLessons;
 

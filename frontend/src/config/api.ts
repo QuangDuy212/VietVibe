@@ -152,11 +152,27 @@ export const callFetchLessons = () => {
     return axios.get<IBackendRes<ILesson[]>>(`/${PREFIX_API}/all`);
 }
 
-export const callFetchLessonsPaginated = (page: number = 1, size: number = 5) => {
+export const callFetchLessonsPaginated = (page: number = 1, size: number = 5, filter?: string) => {
   return axios.get<IBackendRes<IPaginationRes<ILesson>>>(`/api/v1/lessons`, {
-    params: { page, size }
+    params: { 
+      page, 
+      size,
+      ...(filter ? { filter } : {}),
+    }
   });
 };
+
+export const callCountActiveLessons = () =>{
+  return axios.get<{count: number}>('/api/v1/lessons/count/active');
+}
+
+export const callCountDeletedLessons = () =>{
+  return axios.get<{count: number}>('/api/v1/lessons/count/deleted');
+}
+
+export const callRestoreLesson = (id: string) => {
+    return axios.put<IBackendRes<string>>(`/${PREFIX_API}/restore/${id}`);
+}
 
 export const callCreateLesson = (lesson: {
     lessontitle: string;

@@ -79,29 +79,17 @@ public class LessonService {
     }
 
     public void delete(String id) {
-        log.info("Delete lesson");
+        log.info("Delete lesson (soft)");
         Lesson lesson = lessonRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+        lesson.setDeleted(true);
+        lessonRepository.save(lesson);
+    }
 
-        // delete vocabularies belonging to this lesson (if any)
-        try {
-            if (lesson.getVocabularies() != null && !lesson.getVocabularies().isEmpty()) {
-                vocabularyRepository.deleteAll(lesson.getVocabularies());
-            }
-        } catch (Exception ex) {
-            log.warn("Failed to delete vocabularies for lesson {}: {}", id, ex.getMessage());
-        }
-
-        // delete lesson detail if exists
-        try {
-            if (lesson.getLessonDetail() != null) {
-                lessonDetailRepository.delete(lesson.getLessonDetail());
-            }
-        } catch (Exception ex) {
-            log.warn("Failed to delete lesson detail for lesson {}: {}", id, ex.getMessage());
-        }
-
-        // finally delete the lesson itself
-        lessonRepository.delete(lesson);
+    public void restore(String id) {
+        log.info("Restore lesson");
+        Lesson lesson = lessonRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+        lesson.setDeleted(false);
+        lessonRepository.save(lesson);
     }
 
     public List<LessonResponse> getAllLessons() {
@@ -177,6 +165,20 @@ public class LessonService {
     }
     public CountElementResponse countLessons() {
         long count = this.lessonRepository.count();
+        return CountElementResponse.builder()
+                .count(count)
+                .build();
+    }
+
+    public CountElementResponse countActiveLessons() {
+        long count = this.lessonRepository.countByDeleted(false);
+        return CountElementResponse.builder()
+                .count(count)
+                .build();
+    }
+
+    public CountElementResponse countDeletedLessons() {
+        long count = this.lessonRepository.countByDeleted(true);
         return CountElementResponse.builder()
                 .count(count)
                 .build();

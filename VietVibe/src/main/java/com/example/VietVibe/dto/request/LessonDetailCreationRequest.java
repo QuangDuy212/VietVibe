@@ -14,7 +14,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class LessonDetailCreationRequest {
-    @NotBlank(message = "Gramma cannot be blank")
     String gramma;
 
     String vocab;

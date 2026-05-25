@@ -28,6 +28,7 @@ public class LessonResponse {
     Instant updatedAt;
     String createdBy;
     String updatedBy;
+    boolean deleted;
     float progress;
     String time;
 }

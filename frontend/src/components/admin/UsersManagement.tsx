@@ -504,31 +504,27 @@ const UsersManagement = ({ onCreateUser, onEditUser, onViewUser }: UsersManageme
 
           {/* Bulk Actions */}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
-              <span className="text-sm font-medium text-primary">
-                {selectedIds.size} selected
+            <div className="flex items-center gap-3 mt-4 px-5 py-3.5 rounded-xl bg-red-50 border border-red-100">
+              <span className="text-base font-semibold text-red-600">
+                {selectedIds.size} item{selectedIds.size > 1 ? "s" : ""} selected
               </span>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-3">
                 {activeTab !== "deleted" && (
                   <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 gap-1.5 text-xs text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700"
                     onClick={() => openBulkConfirm("bulkDelete")}
+                    variant="outline"
+                    className="gap-2 rounded-xl text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 h-10 px-5 font-medium"
                   >
-                    <Trash2 className="h-3 w-3" />
-                    Move to Trash
+                    <Trash2 className="h-5 w-5" /> Move to Trash
                   </Button>
                 )}
                 {activeTab !== "active" && (
                   <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 gap-1.5 text-xs text-emerald-600 border border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
                     onClick={() => openBulkConfirm("bulkRestore")}
+                    variant="outline"
+                    className="gap-2 rounded-xl text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 h-10 px-5 font-medium"
                   >
-                    <RotateCcw className="h-3 w-3" />
-                    Restore
+                    <RotateCcw className="h-5 w-5" /> Restore
                   </Button>
                 )}
               </div>

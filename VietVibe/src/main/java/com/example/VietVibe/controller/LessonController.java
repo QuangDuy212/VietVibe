@@ -63,6 +63,18 @@ public class LessonController {
         return ResponseEntity.ok().body(this.lessonService.countLessons());
     }
 
+    @GetMapping("/count/active")
+    @ApiMessage("Count active lessons success")
+    ResponseEntity<CountElementResponse> countActiveLessons() {
+        return ResponseEntity.ok().body(this.lessonService.countActiveLessons());
+    }
+
+    @GetMapping("/count/deleted")
+    @ApiMessage("Count deleted lessons success")
+    ResponseEntity<CountElementResponse> countDeletedLessons() {
+        return ResponseEntity.ok().body(this.lessonService.countDeletedLessons());
+    }
+
     @GetMapping("/{id}")
     @ApiMessage("Get detail lesson success")
     ResponseEntity<LessonResponse> getLesson(@PathVariable("id") String id) {
@@ -72,6 +84,15 @@ public class LessonController {
     @ApiMessage("Delete a lesson success")
     ResponseEntity<ApiString> delete(@PathVariable String id) {
         lessonService.delete(id);
+        return ResponseEntity.ok().body(ApiString.builder()
+                .message("success")
+                .build());
+    }
+
+    @PutMapping("/restore/{id}")
+    @ApiMessage("Restore a lesson success")
+    ResponseEntity<ApiString> restore(@PathVariable String id) {
+        lessonService.restore(id);
         return ResponseEntity.ok().body(ApiString.builder()
                 .message("success")
                 .build());
