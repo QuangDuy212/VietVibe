@@ -84,15 +84,34 @@ public class UserService {
     }
 
     public void delete(String userId) {
-        log.info("Delete a user");
+        log.info("Soft delete a user");
         User user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        this.userRepository.delete(user);
+        user.setDeleted(true);
+        this.userRepository.save(user);
     }
 
-    public ApiPagination<UserResponse> getAllUsers(Specification<User> spec, Pageable pageable) {
-        log.info("Get all users");
-        Page<User> pageUser = this.userRepository.findAll(spec, pageable);
+    public void restore(String userId) {
+        log.info("Restore a user");
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        user.setDeleted(false);
+        this.userRepository.save(user);
+    }
+
+    public ApiPagination<UserResponse> getAllUsers(Boolean deleted, Specification<User> spec, Pageable pageable) {
+        log.info("Get all users with deleted={}", deleted);
+
+        Specification<User> statusSpec = (root, query, cb) -> {
+            if (deleted != null) {
+                return cb.equal(root.get("deleted"), deleted);
+            }
+            return cb.or(cb.isFalse(root.get("deleted")), cb.isNull(root.get("deleted")));
+        };
+
+        Specification<User> finalSpec = spec != null ? Specification.where(statusSpec).and(spec) : statusSpec;
+
+        Page<User> pageUser = this.userRepository.findAll(finalSpec, pageable);
 
         List<UserResponse> listUser = pageUser.getContent().stream().map(userMapper::toUserResponse).toList();
 
@@ -159,13 +178,37 @@ public class UserService {
                 .build();
     }
 
-    public ApiPagination<UserResponse> search(String keyword, Pageable pageable) {
-        Page<User> pageUser;
-        if (keyword != null && !keyword.isBlank()) {
-            pageUser = this.userRepository.findByUsernameContainingIgnoreCase(keyword, pageable);
-        } else {
-            pageUser = this.userRepository.findAll(pageable);
-        }
+    public CountElementResponse countActiveUsers(){
+        log.info("Count active users");
+        long count = this.userRepository.countActive();
+        return CountElementResponse.builder()
+                .count(count)
+                .build();
+    }
+
+    public CountElementResponse countDeletedUsers(){
+        log.info("Count deleted users");
+        long count = this.userRepository.countDeleted();
+        return CountElementResponse.builder()
+                .count(count)
+                .build();
+    }
+
+    public ApiPagination<UserResponse> search(String keyword, Boolean deleted, Pageable pageable) {
+        Specification<User> spec = (root, query, cb) -> {
+            jakarta.persistence.criteria.Predicate p = cb.conjunction();
+            if (keyword != null && !keyword.isBlank()) {
+                p = cb.and(p, cb.like(cb.lower(root.get("username")), "%" + keyword.toLowerCase() + "%"));
+            }
+            if (deleted != null) {
+                p = cb.and(p, cb.equal(root.get("deleted"), deleted));
+            } else {
+                p = cb.and(p, cb.or(cb.isFalse(root.get("deleted")), cb.isNull(root.get("deleted"))));
+            }
+            return p;
+        };
+
+        Page<User> pageUser = this.userRepository.findAll(spec, pageable);
 
         List<UserResponse> listUser = pageUser.getContent().stream()
                 .map(userMapper::toUserResponse)

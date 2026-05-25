@@ -25,13 +25,29 @@ export const callLogout = () => {
 }
 
 // MODULE  USER
-export const callGetAllUsers = (page = 0, size = 10, sort?: string) => {
+export const callGetAllUsers = (page = 0, size = 10, sort?: string, deleted?: boolean | null) => {
     const oneIndexedPage = Math.max(1, page + 1);
-    return axios.get<unknown>('/api/v1/users', { params: { page: oneIndexedPage, size, sort } });
+    const params: Record<string, any> = { page: oneIndexedPage, size, sort };
+    if (deleted !== undefined && deleted !== null) {
+        params.deleted = deleted;
+    }
+    return axios.get<unknown>('/api/v1/users', { params });
 };
 
 export const callCountAllUsers = () =>{
   return axios.get<{count: number}>('/api/v1/users/count/total');
+}
+
+export const callCountActiveUsers = () =>{
+  return axios.get<{count: number}>('/api/v1/users/count/active');
+}
+
+export const callCountDeletedUsers = () =>{
+  return axios.get<{count: number}>('/api/v1/users/count/deleted');
+}
+
+export const callRestoreUser = (userId: string) => {
+    return axios.post<IBackendRes<unknown>>(`/api/v1/users/${userId}/restore`);
 }
 
 // Create vocabularies in batch (controller expects POST /api/v1/vocabularies/batch)
@@ -58,9 +74,13 @@ export const callDeleteUser = (userId: string) => {
     return axios.delete<IBackendRes<unknown>>(`/api/v1/users/${userId}`);
 };
 
-export const callSearchUsers = (data: unknown, page = 0, size = 10, sort?: string) => {
+export const callSearchUsers = (data: unknown, page = 0, size = 10, sort?: string, deleted?: boolean | null) => {
     const oneIndexedPage = Math.max(1, page + 1);
-    return axios.post<unknown>('/api/v1/users/search', data, { params: { page: oneIndexedPage, size, sort } });
+    const params: Record<string, any> = { page: oneIndexedPage, size, sort };
+    if (deleted !== undefined && deleted !== null) {
+        params.deleted = deleted;
+    }
+    return axios.post<unknown>('/api/v1/users/search', data, { params });
 }
 // MODULE GAME
 // Lấy list game (phân trang + filter BE)

@@ -36,6 +36,10 @@ public class User {
     String address;
     String role;
 
+    @Builder.Default
+    @Column(name = "deleted")
+    Boolean deleted = false;
+
     Instant createdAt;
     Instant updatedAt;
     String createdBy;

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.example.VietVibe.entity.User;
@@ -20,5 +21,11 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
     User findByRefreshTokenAndUsername(String refreshToken, String username);
 
     Page<User> findByUsernameContainingIgnoreCase(String username, Pageable pageable);
+
+    @Query("SELECT COUNT(u) FROM users u WHERE u.deleted = true")
+    long countDeleted();
+
+    @Query("SELECT COUNT(u) FROM users u WHERE u.deleted = false OR u.deleted IS NULL")
+    long countActive();
 }
 

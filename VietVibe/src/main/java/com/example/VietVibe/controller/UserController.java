@@ -59,8 +59,11 @@ public class UserController {
 
     @GetMapping
     @ApiMessage("Get all users success")
-    ResponseEntity<ApiPagination<UserResponse>> getUsers(@Filter Specification<User> spec, Pageable pageable) {
-        return ResponseEntity.ok().body(this.userService.getAllUsers(spec, pageable));
+    ResponseEntity<ApiPagination<UserResponse>> getUsers(
+            @RequestParam(required = false) Boolean deleted,
+            @Filter Specification<User> spec,
+            Pageable pageable) {
+        return ResponseEntity.ok().body(this.userService.getAllUsers(deleted, spec, pageable));
     }
 
     @GetMapping("/{id}")
@@ -81,10 +84,31 @@ public class UserController {
         return ResponseEntity.ok().body(this.userService.countAllUsers());
     }
 
+    @GetMapping("/count/active")
+    @ApiMessage("Count active users success")
+    ResponseEntity<CountElementResponse> countActiveUsers() {
+        return ResponseEntity.ok().body(this.userService.countActiveUsers());
+    }
+
+    @GetMapping("/count/deleted")
+    @ApiMessage("Count deleted users success")
+    ResponseEntity<CountElementResponse> countDeletedUsers() {
+        return ResponseEntity.ok().body(this.userService.countDeletedUsers());
+    }
+
     @DeleteMapping("/{id}")
     @ApiMessage("Delete a user success")
     ResponseEntity<ApiString> delete(@PathVariable String id) {
         userService.delete(id);
+        return ResponseEntity.ok().body(ApiString.builder()
+                .message("success")
+                .build());
+    }
+
+    @PostMapping("/{id}/restore")
+    @ApiMessage("Restore a user success")
+    ResponseEntity<ApiString> restore(@PathVariable String id) {
+        userService.restore(id);
         return ResponseEntity.ok().body(ApiString.builder()
                 .message("success")
                 .build());
@@ -100,9 +124,10 @@ public class UserController {
     @ApiMessage("Search users success")
     ResponseEntity<ApiPagination<UserResponse>> searchUsers(
             @RequestBody Map<String, String> request,
+            @RequestParam(required = false) Boolean deleted,
             @PageableDefault(size = 10) Pageable pageable) {
         String keyword = request != null ? request.get("keyword") : null;
-        return ResponseEntity.ok().body(this.userService.search(keyword, pageable));
+        return ResponseEntity.ok().body(this.userService.search(keyword, deleted, pageable));
     }
 }
 

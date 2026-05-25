@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import UsersManagement from "@/components/admin/UsersManagement";
 import LessonsManagement from "@/components/admin/LessonsManagement";
 import GamesManagement from "@/components/admin/GamesManagement";
-import { Users, BookOpen, Gamepad2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import PointsManagement from "@/components/admin/PointsManagement";
 import { useAppSelector } from "@/redux/hook";
 import Dashboard from "@/components/admin/Dashboard";
@@ -21,16 +16,10 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [stats, setStats] = useState({
-    users: 0,
-    lessons: 0,
-    games: 0,
-  });
   const user = useAppSelector(state => state.account.user);
 
   useEffect(() => {
     checkAdminStatus();
-    fetchStats();
   }, []);
 
   const checkAdminStatus = async () => {
@@ -47,24 +36,6 @@ const Admin = () => {
       navigate("/");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const [usersCount, lessonsCount, gamesCount] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("lessons").select("*", { count: "exact", head: true }),
-        supabase.from("games").select("*", { count: "exact", head: true }),
-      ]);
-
-      setStats({
-        users: usersCount.count || 0,
-        lessons: lessonsCount.count || 0,
-        games: gamesCount.count || 0,
-      });
-    } catch (error) {
-      console.error("Error fetching stats:", error);
     }
   };
 
@@ -102,10 +73,9 @@ const Admin = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-muted/30 to-primary/5">
+      <div className="min-h-screen flex w-full bg-slate-100">
 
           <AdminSidebar
-            stats={stats}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
@@ -119,24 +89,21 @@ const Admin = () => {
 
           <div className="relative z-10">
             {/* Header with Sidebar Trigger */}
-            <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border/50">
-              <div className="container mx-auto px-6 py-[26px] flex items-center gap-4">
-                <SidebarTrigger />
+            <div className="sticky top-0 z-20 h-20 bg-white border-b border-gray-200 shadow-sm flex items-center">
+              <div className="container mx-auto px-4 flex items-center gap-2">
+                <SidebarTrigger className="h-8 w-8" />
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent leading-tight">
                     {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
                   </h1>
-                  <p className="text-sm text-muted-foreground">Manage your {activeTab}</p>
+                  <p className="text-sm text-muted-foreground leading-tight">Manage your {activeTab}</p>
                 </div>
               </div>
             </div>
 
-            {/* Charts Section */}
-            <div className="container mx-auto px-6 py-8">
-              {/* Content Management Section */}
-              <div className="animate-fade-in">
-                {renderContent()}
-              </div>
+            {/* Content */}
+            <div className="container mx-auto px-4 py-4">
+              {renderContent()}
             </div>
           </div>
         </main>
