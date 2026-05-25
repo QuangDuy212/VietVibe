@@ -14,7 +14,7 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(
-                Arrays.asList("http://localhost:8081", "http://localhost:4173", "http://localhost:5173"));
+                Arrays.asList("http://localhost:8081", "http://localhost:4173", "http://localhost:5173", "http://localhost:9091"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Allowed methods
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "x-no-retry"));
         configuration.setAllowCredentials(true);

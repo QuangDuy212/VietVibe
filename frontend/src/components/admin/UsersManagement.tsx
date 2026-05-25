@@ -49,6 +49,8 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Eye,
+  MoreHorizontal,
 } from "lucide-react";
 
 import {
@@ -478,9 +480,9 @@ const UsersManagement = () => {
   };
 
   const statCards = [
-    { label: "Total Users", value: stats.total, icon: Users, bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" },
-    { label: "Active Users", value: stats.active, icon: Check, bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" },
-    { label: "Deleted Users", value: stats.deleted, icon: Trash2, bg: "bg-rose-50", text: "text-rose-600", border: "border-rose-200" },
+    { label: "Total Users", value: stats.total, icon: Users, iconBg: "bg-blue-50", iconColor: "text-blue-600", subtitle: "All registered users", subtitleColor: "text-blue-600" },
+    { label: "Active Users", value: stats.active, icon: Check, iconBg: "bg-green-50", iconColor: "text-green-600", subtitle: "Currently active", subtitleColor: "text-green-600" },
+    { label: "Deleted Users", value: stats.deleted, icon: Trash2, iconBg: "bg-red-50", iconColor: "text-red-500", subtitle: "Moved to trash", subtitleColor: "text-red-500" },
   ];
 
   if (loading && users.length === 0) {
@@ -514,81 +516,90 @@ const UsersManagement = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="bg-white border-gray-200 shadow-md overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                  </div>
-                  <div className={`p-2.5 rounded-lg ${stat.bg} border ${stat.border}`}>
-                    <Icon className={`h-5 w-5 ${stat.text}`} />
-                  </div>
+            <div
+              key={stat.label}
+              className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                 </div>
-              </CardContent>
-            </Card>
+                <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+                  <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                </div>
+              </div>
+              <p className={`text-xs ${stat.subtitleColor} font-medium`}>{stat.subtitle}</p>
+            </div>
           );
         })}
       </div>
 
-      {/* Tabs + Search + Actions */}
-      <Card className="bg-white border-gray-200 shadow-md overflow-hidden">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(0); }} className="w-auto">
-              <TabsList className="bg-muted/50">
-                <TabsTrigger value="all" className="text-sm">All</TabsTrigger>
-                <TabsTrigger value="active" className="text-sm">Active</TabsTrigger>
-                <TabsTrigger value="deleted" className="text-sm">Deleted</TabsTrigger>
-              </TabsList>
-            </Tabs>
+      {/* Main Table Card */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {/* Table Header / Toolbar */}
+        <div className="px-6 py-4 border-b border-gray-100">
+          {/* Row 1: Title + Add button */}
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">User Management</h2>
+              <p className="text-sm text-gray-400 mt-0.5">Create, manage, and organize all users</p>
+            </div>
+            <Button
+              onClick={openCreateDialog}
+              className="gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              + Add User
+            </Button>
+          </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by username or name..."
-                    className="pl-9 pr-9 h-9 w-52 sm:w-64 text-sm"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                  />
-                  {searchKeyword && (
-                    <X
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
-                      onClick={handleResetSearch}
-                    />
-                  )}
-                </div>
-                <Button size="sm" onClick={() => handleSearch(0)} className="h-9 gap-1.5 text-sm">
-                  <Search className="h-4 w-4" />
-                  Search
-                </Button>
-                {isSearching && (
-                  <Button variant="outline" size="sm" onClick={handleResetSearch} className="h-9 text-sm">
-                    Show All
-                  </Button>
-                )}
-              </div>
+          {/* Row 2: Tabs + Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              {(["all", "active", "deleted"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setPage(0); setSelectedIds(new Set()); }}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                    activeTab === tab
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
 
-              <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1.5 text-sm">
-                <UserPlus className="h-4 w-4" />
-                Add User
-              </Button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by username or name..."
+                className="pl-9 pr-9 h-9 w-64 text-sm border-gray-200 rounded-lg bg-gray-50 focus:bg-white"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                onKeyDown={handleKeyPress}
+              />
+              {searchKeyword && (
+                <X
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600"
+                  onClick={handleResetSearch}
+                />
+              )}
             </div>
           </div>
 
           {/* Bulk Actions */}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-muted/40 border border-dashed">
-              <span className="text-sm font-medium">
+            <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+              <span className="text-sm font-medium text-primary">
                 {selectedIds.size} selected
               </span>
               <div className="ml-auto flex items-center gap-2">
@@ -596,10 +607,10 @@ const UsersManagement = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 gap-1.5 text-sm text-rose-600 border-rose-200 hover:bg-rose-50"
+                    className="h-7 gap-1.5 text-xs text-red-600 border-red-200 hover:bg-red-50"
                     onClick={() => openBulkConfirm("bulkDelete")}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3 w-3" />
                     Move to Trash
                   </Button>
                 )}
@@ -607,181 +618,191 @@ const UsersManagement = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 gap-1.5 text-sm text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                    className="h-7 gap-1.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                     onClick={() => openBulkConfirm("bulkRestore")}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-3 w-3" />
                     Restore
                   </Button>
                 )}
               </div>
             </div>
           )}
-        </CardHeader>
+        </div>
 
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50 h-11 border-b border-gray-200">
-                  <TableHead className="w-10 px-3">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 border-b border-gray-200">
+                {activeTab !== "all" && (
+                  <TableHead className="w-10 pl-6 h-12">
                     <Checkbox
                       checked={users.length > 0 && selectedIds.size === users.length}
                       onCheckedChange={toggleSelectAll}
                       aria-label="Select all"
                     />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider w-24">ID</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Username</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Address</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Role</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Created</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wider text-right w-28">Actions</TableHead>
+                )}
+                <TableHead className="text-sm font-semibold text-gray-600 h-12">Username</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-600 h-12">Name</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-600 h-12">Address</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-600 h-12">Role</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-600 h-12">Status</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-600 h-12">Created</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-600 text-right pr-6 h-12">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={activeTab === "all" ? 7 : 8} className="text-center py-16 text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <AlertTriangle className="h-8 w-8 text-gray-300" />
+                      <p className="text-sm">{isSearching ? `No users found matching "${searchKeyword}"` : "No users found"}</p>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
-                      <div className="flex flex-col items-center gap-2">
-                        <AlertTriangle className="h-8 w-8 text-muted-foreground/50" />
-                        <p>{isSearching ? `No users found matching "${searchKeyword}"` : "No users found"}</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  users.map((user) => (
-                    <TableRow
-                      key={user._id}
-                      className={`h-12 border-b border-gray-100 ${user.deleted ? "bg-rose-50/30" : "hover:bg-slate-50/60"}`}
-                    >
-                      <TableCell className="px-3 py-2">
+              ) : (
+                users.map((user) => (
+                  <TableRow
+                    key={user._id}
+                    className={`border-b border-gray-100 transition-colors ${
+                      user.deleted ? "bg-red-50/30" : "hover:bg-gray-50/50"
+                    }`}
+                  >
+                    {activeTab !== "all" && (
+                      <TableCell className="pl-6 py-4">
                         <Checkbox
                           checked={selectedIds.has(user._id)}
                           onCheckedChange={() => toggleSelect(user._id)}
                           aria-label={`Select ${user.username}`}
                         />
                       </TableCell>
-                      <TableCell className="py-2 text-xs font-mono text-slate-500">
-                        {user._id.substring(0, 8)}...
-                      </TableCell>
-                      <TableCell className="py-2 font-medium text-sm">{user.username}</TableCell>
-                      <TableCell className="py-2 text-sm">{user.name}</TableCell>
-                      <TableCell className="py-2 text-sm text-muted-foreground">{user.address || "-"}</TableCell>
-                      <TableCell className="py-2 text-center">{getRoleBadge(user.role)}</TableCell>
-                      <TableCell className="py-2 text-center">{getStatusBadge(user.deleted)}</TableCell>
-                      <TableCell className="py-2 text-center text-xs text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="py-2 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {!user.deleted && (
-                            <>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
-                                onClick={() => openEditDialog(user)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 hover:bg-rose-50 hover:text-rose-600"
-                                onClick={() => openConfirm(user._id, user.username, "delete")}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {user.deleted && (
-                            <>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600"
-                                onClick={() => openConfirm(user._id, user.username, "restore")}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 hover:bg-rose-50 hover:text-rose-600"
-                                onClick={() => openConfirm(user._id, user.username, "delete")}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+                    )}
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <User className="h-4 w-4 text-primary" />
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                        <span className="font-medium text-sm text-gray-900">{user.username}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 text-sm text-gray-700">{user.name}</TableCell>
+                    <TableCell className="py-4 text-sm text-gray-500">{user.address || "—"}</TableCell>
+                    <TableCell className="py-4">{getRoleBadge(user.role)}</TableCell>
+                    <TableCell className="py-4">{getStatusBadge(user.deleted)}</TableCell>
+                    <TableCell className="py-4 text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="py-4 pr-6">
+                      <div className="flex items-center justify-end gap-1">
+                        {!user.deleted && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                              onClick={() => openEditDialog(user)}
+                              title="View"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                              onClick={() => openEditDialog(user)}
+                              title="Edit"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                              onClick={() => openConfirm(user._id, user.username, "delete")}
+                              title="More"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        {user.deleted && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"
+                              onClick={() => openConfirm(user._id, user.username, "restore")}
+                              title="Restore"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                              onClick={() => openConfirm(user._id, user.username, "delete")}
+                              title="More"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-          {/* Pagination */}
-          {users.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-slate-50/50">
-              <div className="text-xs text-muted-foreground">
-                Showing <span className="font-medium">{users.length}</span> of{" "}
-                <span className="font-medium">{totalElements}</span> users
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={goPrev}
-                  disabled={page === 0}
-                  className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {pageNumbers().map((p, i) =>
-                    p === "..." ? (
-                      <span key={`dots-${i}`} className="px-1 text-xs text-muted-foreground">
-                        ...
-                      </span>
-                    ) : (
-                      <Button
-                        key={p}
-                        size="sm"
-                        variant={p === page ? "default" : "ghost"}
-                        onClick={() => setPage(p as number)}
-                        className={`h-8 w-8 rounded-lg text-xs font-medium ${
-                          p === page
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"
-                        }`}
-                      >
-                        {(p as number) + 1}
-                      </Button>
-                    )
-                  )}
-                </div>
-
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={goNext}
-                  disabled={page + 1 >= totalPages}
-                  className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+        {/* Pagination */}
+        {users.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+            <div className="text-xs text-gray-500">
+              Showing <span className="font-semibold text-gray-700">{users.length}</span> of{" "}
+              <span className="font-semibold text-gray-700">{totalElements}</span> users
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={goPrev}
+                disabled={page === 0}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {pageNumbers().map((p, i) =>
+                p === "..." ? (
+                  <span key={`dots-${i}`} className="px-1 text-xs text-gray-400">...</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`h-8 w-8 rounded-lg text-xs font-medium transition-colors ${
+                      p === page
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {(p as number) + 1}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={goNext}
+                disabled={page + 1 >= totalPages}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Create User Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
