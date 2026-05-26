@@ -4,6 +4,7 @@ import {
   callUpdateGame,
   callGetGameDetail,
   callUploadFile,
+  callAiGenerateQuestions,
 } from "@/config/api";
 import { IBackendRes, IGame, IQuestion, IAnswer } from "@/types/common.type";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +15,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ChevronLeft, Plus, Save, Trash2, X, Upload, Music, Image as ImageIcon, Loader2, ChevronDown, ChevronRight, GripVertical, Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  ChevronLeft, 
+  Plus, 
+  Save, 
+  Trash2, 
+  X, 
+  Upload, 
+  Music, 
+  Image as ImageIcon, 
+  Loader2, 
+  ChevronDown, 
+  ChevronRight, 
+  GripVertical, 
+  Check,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Wand2
+} from "lucide-react";
 
 interface UpdateGameProps {
   mode: "create" | "edit" | "view";
@@ -40,6 +67,17 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
 
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
   const [collapsedQuestions, setCollapsedQuestions] = useState<Record<number, boolean>>({});
+
+  // AI Generator States
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiCount, setAiCount] = useState<number>(5);
+  const [aiLevel, setAiLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "ADVANCE">("BEGINNER");
+  const [aiGameType, setAiGameType] = useState<IGame["type"]>("MULTIPLE_CHOICE");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [useMockMode, setUseMockMode] = useState(false);
+  const [generatedQuestions, setGeneratedQuestions] = useState<IQuestion[]>([]);
+  const [selectedImportIndices, setSelectedImportIndices] = useState<Set<number>>(new Set());
 
   const toggleQuestionCollapse = (qIndex: number) => {
     setCollapsedQuestions((prev) => ({
@@ -204,6 +242,183 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
       });
       return { ...prev, questions };
     });
+  };
+
+  const generateMockQuestions = () => {
+    setAiLoading(true);
+    setTimeout(() => {
+      const gameType = aiGameType;
+      let mockList: IQuestion[] = [];
+
+      if (gameType === "MULTIPLE_CHOICE") {
+        mockList = [
+          {
+            content: `Greeting: What is the most standard way to say 'Hello' in Vietnamese? [Mock Level: ${aiLevel}]`,
+            answers: [
+              { content: "Xin chào", isCorrect: true },
+              { content: "Cảm ơn", isCorrect: false },
+              { content: "Tạm biệt", isCorrect: false },
+              { content: "Xin lỗi", isCorrect: false },
+            ],
+          },
+          {
+            content: "What does 'Chúc ngủ ngon' mean?",
+            answers: [
+              { content: "Good morning", isCorrect: false },
+              { content: "Good night", isCorrect: true },
+              { content: "Have a nice day", isCorrect: false },
+              { content: "Welcome", isCorrect: false },
+            ],
+          },
+          {
+            content: "How do you say 'Thank you' in Vietnamese?",
+            answers: [
+              { content: "Cảm ơn", isCorrect: true },
+              { content: "Không có gì", isCorrect: false },
+              { content: "Chào buổi sáng", isCorrect: false },
+              { content: "Hẹn gặp lại", isCorrect: false },
+            ],
+          },
+        ];
+      } else if (gameType === "SENTENCE_ORDER") {
+        mockList = [
+          {
+            content: `Arrange the words to say: 'I speak Vietnamese' [Mock Level: ${aiLevel}]`,
+            answers: [
+              { content: "Tôi", orderIndex: 0 },
+              { content: "nói", orderIndex: 1 },
+              { content: "tiếng", orderIndex: 2 },
+              { content: "Việt", orderIndex: 3 },
+            ],
+          },
+          {
+            content: "Arrange the words to say: 'This dish is very delicious'",
+            answers: [
+              { content: "Món", orderIndex: 0 },
+              { content: "này", orderIndex: 1 },
+              { content: "rất", orderIndex: 2 },
+              { content: "ngon", orderIndex: 3 },
+            ],
+          },
+        ];
+      } else if (gameType === "LISTENING_CHOICE") {
+        mockList = [
+          {
+            content: `Listen and translate this common phrase [Mock Level: ${aiLevel}]`,
+            audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            answers: [
+              { content: "Vietnamese coffee is great", isCorrect: true },
+              { content: "I love drinking hot tea", isCorrect: false },
+              { content: "Water is healthy", isCorrect: false },
+            ],
+          },
+          {
+            content: "Choose the correct spelling you hear:",
+            audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+            answers: [
+              { content: "Phở bò", isCorrect: true },
+              { content: "Hủ tiếu", isCorrect: false },
+              { content: "Bánh xèo", isCorrect: false },
+            ],
+          },
+        ];
+      }
+
+      setGeneratedQuestions(mockList);
+      setSelectedImportIndices(new Set(mockList.map((_, i) => i)));
+      setAiLoading(false);
+      toast.success(`Generated ${mockList.length} offline demo questions successfully!`);
+    }, 800);
+  };
+
+  const handleGenerateAiQuestions = async () => {
+    if (useMockMode) {
+      generateMockQuestions();
+      return;
+    }
+
+    if (!aiTopic.trim()) {
+      toast.error("Please enter a generation topic/theme");
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const res = await callAiGenerateQuestions({
+        prompt: aiTopic.trim(),
+        count: aiCount,
+        level: aiLevel,
+        gameType: aiGameType,
+      });
+
+      if (res.statusCode && res.statusCode !== 200) {
+        throw new Error(res.message || "Server returned an error");
+      }
+
+      if (res.error) {
+        throw new Error(String(res.error));
+      }
+
+      const generated = res.data;
+      if (!Array.isArray(generated)) {
+        throw new Error("Invalid response format from server");
+      }
+
+      const formatted: IQuestion[] = generated.map((q: any) => {
+        const rawAnswers = q.answers ?? [];
+        const answers: IAnswer[] = rawAnswers.map((a: any) => ({
+          content: a.content ?? a.text ?? "",
+          isCorrect: !!a.isCorrect,
+          orderIndex: typeof a.orderIndex === "number" ? a.orderIndex : undefined,
+        }));
+        return {
+          content: q.content ?? q.text ?? "",
+          imageUrl: q.imageUrl || "",
+          audioUrl: q.audioUrl || "",
+          answers,
+        };
+      });
+
+      setGeneratedQuestions(formatted);
+      setSelectedImportIndices(new Set(formatted.map((_, i) => i)));
+      toast.success(`Generated ${formatted.length} questions successfully!`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`AI Generation failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleImportQuestions = () => {
+    if (generatedQuestions.length === 0) return;
+
+    const selectedList = generatedQuestions.filter((_, idx) => selectedImportIndices.has(idx));
+    if (selectedList.length === 0) {
+      toast.error("Please select at least one question to import");
+      return;
+    }
+
+    setCurrentGame((prev) => {
+      const questions = [...(prev.questions ?? []), ...selectedList];
+      const finalType = isCreate ? aiGameType : prev.type;
+      return { ...prev, type: finalType, questions };
+    });
+
+    toast.success(`Imported ${selectedList.length} questions into your game!`);
+    setAiModalOpen(false);
+    setGeneratedQuestions([]);
+    setAiTopic("");
+  };
+
+  const toggleSelectImport = (index: number) => {
+    const next = new Set(selectedImportIndices);
+    if (next.has(index)) {
+      next.delete(index);
+    } else {
+      next.add(index);
+    }
+    setSelectedImportIndices(next);
   };
 
   const removeQuestion = (qIndex: number) => {
@@ -473,9 +688,23 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
                 <CardDescription>Manage the questions and answers for this game.</CardDescription>
               </div>
               {canEdit && (
-                <Button size="sm" onClick={addQuestion} className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Question
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setAiModalOpen(true);
+                      setGeneratedQuestions([]);
+                      setAiGameType(currentGame.type);
+                    }}
+                    className="gap-2 border-violet-200 bg-gradient-to-r from-violet-50 to-pink-50 text-violet-700 hover:from-violet-100 hover:to-pink-100 font-semibold rounded-xl"
+                  >
+                    <Sparkles className="h-4 w-4 text-violet-500 animate-pulse" /> AI Generate
+                  </Button>
+                  <Button size="sm" onClick={addQuestion} className="gap-2 rounded-xl">
+                    <Plus className="h-4 w-4" /> Add Question
+                  </Button>
+                </div>
               )}
             </CardHeader>
             <CardContent className="space-y-6">
@@ -483,9 +712,22 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
                 <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl">
                   <p className="text-sm text-gray-500 mb-4">No questions added yet.</p>
                   {canEdit && (
-                    <Button variant="outline" onClick={addQuestion}>
-                      <Plus className="h-4 w-4 mr-2" /> Add First Question
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <Button variant="outline" onClick={addQuestion} className="rounded-xl">
+                        <Plus className="h-4 w-4 mr-2" /> Add First Question
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setAiModalOpen(true);
+                          setGeneratedQuestions([]);
+                          setAiGameType(currentGame.type);
+                        }}
+                        className="border-violet-200 bg-gradient-to-r from-violet-50 to-pink-50 text-violet-700 hover:from-violet-100 hover:to-pink-100 font-semibold rounded-xl"
+                      >
+                        <Sparkles className="h-4 w-4 mr-2 text-violet-500" /> AI Generate Batch
+                      </Button>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -875,6 +1117,232 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
           </Card>
         </div>
       </div>
+
+      {/* Dialog for AI Questions Generator */}
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="rounded-2xl max-w-2xl bg-white border border-gray-100 shadow-xl overflow-hidden max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-violet-50/50 via-pink-50/50 to-red-50/50 shrink-0">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-violet-600 animate-pulse" />
+              AI Game Questions Generator
+            </DialogTitle>
+            <DialogDescription className="text-sm mt-1">
+              Generate batches of high-quality questions for <strong>{renderTypeLabel(aiGameType)}</strong> games instantly!
+            </DialogDescription>
+          </DialogHeader>
+
+          {aiLoading ? (
+            <div className="flex-1 py-20 flex flex-col items-center justify-center gap-4">
+              <div className="relative h-16 w-16">
+                <Loader2 className="h-16 w-16 animate-spin text-violet-600 absolute" />
+                <Sparkles className="h-6 w-6 text-pink-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-bounce" />
+              </div>
+              <div className="text-center space-y-1 mt-2">
+                <p className="font-semibold text-gray-800">VietVibe AI is crafting questions...</p>
+                <p className="text-xs text-gray-400">Applying language templates and structuring answers</p>
+              </div>
+            </div>
+          ) : generatedQuestions.length > 0 ? (
+            /* REVIEW PANEL */
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div>
+                  <h4 className="font-bold text-gray-900">Review generated questions</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Select the questions you wish to import into your game.</p>
+                </div>
+                <Badge variant="secondary" className="font-semibold text-violet-700 bg-violet-50">
+                  {selectedImportIndices.size} selected
+                </Badge>
+              </div>
+
+              <div className="space-y-4">
+                {generatedQuestions.map((q, qIdx) => {
+                  const isSelected = selectedImportIndices.has(qIdx);
+                  return (
+                    <div 
+                      key={qIdx}
+                      className={`border rounded-2xl p-4 transition-all ${
+                        isSelected 
+                          ? "border-violet-200 bg-violet-50/10 shadow-sm" 
+                          : "border-gray-200 bg-gray-50/20 opacity-70"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <span className="font-bold text-sm text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">
+                          Question #{qIdx + 1}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectImport(qIdx)}
+                          className="h-4.5 w-4.5 rounded text-violet-600 focus:ring-violet-500 border-gray-300 cursor-pointer"
+                        />
+                      </div>
+                      
+                      <p className="font-semibold text-gray-800 text-sm mb-3">
+                        {q.content}
+                      </p>
+
+                      {aiGameType === "SENTENCE_ORDER" ? (
+                        <div className="flex flex-wrap gap-2">
+                          {(q.answers ?? []).map((a, aIdx) => (
+                            <Badge key={aIdx} variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 font-medium py-1 px-2.5 rounded-lg text-xs">
+                              {a.content} <span className="text-[10px] text-amber-500 ml-1">({a.orderIndex})</span>
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {(q.answers ?? []).map((a, aIdx) => (
+                            <div 
+                              key={aIdx}
+                              className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs ${
+                                a.isCorrect 
+                                  ? "border-green-200 bg-green-50/40 text-green-800 font-semibold" 
+                                  : "border-gray-100 bg-white text-gray-600"
+                              }`}
+                            >
+                              <span>{String.fromCharCode(65 + aIdx)}. {a.content}</span>
+                              {a.isCorrect && <Check className="h-3.5 w-3.5 text-green-600 shrink-0" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* CONFIGURATION PANEL */
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Topic / Theme description</Label>
+                <Input
+                  placeholder="e.g. Traditional Vietnamese food like Phở, or common business greetings"
+                  value={aiTopic}
+                  className="rounded-xl border-gray-200 h-11"
+                  onChange={(e) => setAiTopic(e.target.value)}
+                />
+                <p className="text-xs text-gray-400">
+                  Provide dynamic hints, keywords, or focus vocabulary for Gemini to use.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">Game Type</Label>
+                  <Select
+                    value={aiGameType}
+                    onValueChange={(val: any) => {
+                      setAiGameType(val);
+                      if (isCreate) {
+                        updateGameField("type", val);
+                      }
+                    }}
+                    disabled={!isCreate}
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200 h-11 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="MULTIPLE_CHOICE">Multiple choice</SelectItem>
+                      <SelectItem value="SENTENCE_ORDER">Sentence order</SelectItem>
+                      <SelectItem value="LISTENING_CHOICE">Listening choice</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">Questions Count</Label>
+                  <Select value={String(aiCount)} onValueChange={(val) => setAiCount(Number(val))}>
+                    <SelectTrigger className="rounded-xl border-gray-200 h-11 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="3">3 Questions</SelectItem>
+                      <SelectItem value="5">5 Questions</SelectItem>
+                      <SelectItem value="10">10 Questions</SelectItem>
+                      <SelectItem value="15">15 Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">Learning Level</Label>
+                  <Select value={aiLevel} onValueChange={(val: any) => setAiLevel(val)}>
+                    <SelectTrigger className="rounded-xl border-gray-200 h-11 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="BEGINNER">Beginner (A1/A2)</SelectItem>
+                      <SelectItem value="INTERMEDIATE">Intermediate (B1/B2)</SelectItem>
+                      <SelectItem value="ADVANCE">Advanced (C1/C2)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200/60 p-4 bg-gray-50/30">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-semibold text-gray-700 cursor-pointer" htmlFor="mock-toggle">
+                      Offline Demo Mode
+                    </Label>
+                    <p className="text-xs text-gray-400">Test UI instantly with high-fidelity placeholder questions</p>
+                  </div>
+                  <input
+                    id="mock-toggle"
+                    type="checkbox"
+                    checked={useMockMode}
+                    onChange={(e) => setUseMockMode(e.target.checked)}
+                    className="h-5 w-5 rounded text-violet-600 focus:ring-violet-500 border-gray-300 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-row items-center justify-end gap-2 shrink-0">
+            {generatedQuestions.length > 0 ? (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={aiLoading}
+                  onClick={() => setGeneratedQuestions([])}
+                  className="rounded-xl border-gray-200 h-10 font-semibold"
+                >
+                  ← Back to Settings
+                </Button>
+                <Button
+                  disabled={aiLoading || selectedImportIndices.size === 0}
+                  onClick={handleImportQuestions}
+                  className="rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold h-10 px-5 shadow-sm"
+                >
+                  Import {selectedImportIndices.size} Questions
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setAiModalOpen(false)}
+                  className="rounded-xl border-gray-200 h-10 font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={aiLoading}
+                  onClick={handleGenerateAiQuestions}
+                  className="rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 hover:opacity-90 text-white font-semibold h-10 px-5 shadow-sm gap-2"
+                >
+                  <Wand2 className="h-4 w-4" /> Generate Questions
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

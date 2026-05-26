@@ -30,10 +30,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)
     ResponseEntity<ApiResponse<?>> handlingRuntimeException(Exception exception) {
+        log.error("Uncaught exception occurred: ", exception);
         ApiResponse<?> apiResponse = new ApiResponse();
 
         apiResponse.setStatusCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage() + ": " + exception.getMessage());
 
         return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)

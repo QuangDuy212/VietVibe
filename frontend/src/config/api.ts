@@ -355,3 +355,13 @@ export const callUploadFile = (file: unknown, folderType: string) => {
 export const callSaveProgress =(lessonId: string, seconds: number) => {
   return axios.post<IBackendRes<unknown>>(`/api/v1/progress/save`, { lessonId, seconds });
 }
+
+//MODULE AI GENERATION
+export const callAiGenerateQuestions = (data: {
+  prompt: string;
+  count: number;
+  level: string;
+  gameType: string;
+}) => {
+  return axios.post<IBackendRes<any>>("/api/v1/ai/generate-questions", data);
+};
