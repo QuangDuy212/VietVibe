@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import LessonCard from "./LessonCard";
 import { useLessons } from "@/hooks/useLessons";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ const LessonsList = () => {
     prevPage,
     goFirst,
     goLast
-  } = useLessons(8); // 8 lessons per page để hiển thị grid 4 cột x 2 hàng
+  } = useLessons(6); // 6 lessons per page để hiển thị (lưới 3 cột x 2 hàng)
 
   // Lọc lessons theo search và level
   const filteredLessons = lessons.filter((lesson) => {
@@ -122,42 +122,44 @@ const LessonsList = () => {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
+            {totalPages >= 1 && (
+              <div className="flex justify-center items-center gap-2.5 mt-10">
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={goFirst}
-                  disabled={!hasPrev}
-                >
-                  First
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={prevPage}
                   disabled={!hasPrev}
+                  className="w-10 h-10 rounded-2xl border border-border/60 hover:bg-muted transition-all duration-300"
                 >
-                  Previous
+                  <ChevronLeft className="h-5 w-5 text-muted-foreground/80" />
                 </Button>
-                <span className="px-4 py-2 text-sm">
-                  Page {page} of {totalPages}
-                </span>
+
+                {Array.from({ length: totalPages }, (_, i) => {
+                  const pageNum = i + 1;
+                  const isActive = pageNum === page;
+                  return (
+                    <Button
+                      key={pageNum}
+                      onClick={() => goToPage(pageNum)}
+                      className={`w-10 h-10 rounded-2xl font-bold transition-all duration-300 ${
+                        isActive
+                          ? "bg-primary text-white shadow-md hover:bg-primary/95 scale-105"
+                          : "border border-border/60 bg-transparent text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={nextPage}
                   disabled={!hasNext}
+                  className="w-10 h-10 rounded-2xl border border-border/60 hover:bg-muted transition-all duration-300"
                 >
-                  Next
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goLast}
-                  disabled={!hasNext}
-                >
-                  Last
+                  <ChevronRight className="h-5 w-5 text-muted-foreground/80" />
                 </Button>
               </div>
             )}

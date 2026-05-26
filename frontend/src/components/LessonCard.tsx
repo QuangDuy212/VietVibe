@@ -32,13 +32,13 @@ const LessonCard = ({
   completed = false,
 }: LessonCardProps) => {
   return (
-    <Link to={locked ? "#" : `/lesson/${id}`} className={locked ? "pointer-events-none" : ""}>
-      <Card className="group h-full flex flex-col hover:scale-[1.02] transition">
+    <Link to={locked ? "#" : `/lesson/${id}`} className={`flex flex-col h-full ${locked ? "pointer-events-none" : ""}`}>
+      <Card className="group flex-1 flex flex-col border border-primary/10 hover:border-primary/30 shadow-sm hover:shadow-md transition duration-300">
         
         {/* HEADER */}
         <CardHeader className="space-y-3">
           <div className="flex items-start justify-between">
-            <CardTitle className={`text-xl ${locked ? "text-muted-foreground" : "group-hover:text-primary"}`}>
+            <CardTitle className={`text-xl ${locked ? "text-muted-foreground" : "group-hover:text-primary"} line-clamp-2 h-14`}>
               {title}
             </CardTitle>
 
@@ -51,7 +51,7 @@ const LessonCard = ({
             )}
           </div>
 
-          <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
+          <p className="text-sm text-muted-foreground line-clamp-2 h-10">
             {description}
           </p>
         </CardHeader>
@@ -61,10 +61,12 @@ const LessonCard = ({
           <div className="flex items-center gap-3">
             <Badge className={levelColors[level]}
             style={{ pointerEvents: 'none', userSelect: 'none' }}>{level}</Badge>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              {duration}
-            </div>
+            {duration && duration.trim() !== "" && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                {duration}
+              </div>
+            )}
           </div>
 
           {/* Progress */}

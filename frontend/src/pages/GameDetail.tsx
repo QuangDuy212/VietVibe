@@ -258,11 +258,15 @@ const GameDetail = () => {
                   </Badge>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground font-bold">
                     <span>Câu hỏi {currentQuestion + 1}/{game.totalQuestions}</span>
-                    <span>{Math.round(progress)}%</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">{Math.round(progress)}%</span>
                   </div>
-                  <Progress value={progress} className="h-2" />
+                  <Progress 
+                    value={progress} 
+                    className="h-2 bg-red-100 dark:bg-red-950/40 border border-red-200/20 dark:border-red-900/10 overflow-hidden" 
+                    indicatorClassName="bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-500 ease-out" 
+                  />
                 </div>
               </CardHeader>
             </Card>

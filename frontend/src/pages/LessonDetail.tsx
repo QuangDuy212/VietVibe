@@ -221,10 +221,14 @@ const LessonDetail = () => {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Progress</span>
-                      <span className="text-sm">{progress}%</span>
+                      <span className="text-sm font-bold text-muted-foreground">Lesson Progress</span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{progress}%</span>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Progress 
+                      value={progress} 
+                      className="h-2 bg-red-100 dark:bg-red-950/40 border border-red-200/20 dark:border-red-900/10 overflow-hidden" 
+                      indicatorClassName="bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-500 ease-out"
+                    />
                   </div>
                 </div>
               </CardHeader>

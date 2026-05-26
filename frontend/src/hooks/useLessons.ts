@@ -6,6 +6,7 @@ export interface LessonWithProgress {
   lessontitle: string;
   videourl: string;
   description: string;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCE";
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -17,32 +18,40 @@ export interface LessonWithProgress {
   time: string;
 }
 
-export const useLessons = (pageSize: number = 5) => {
+export const useLessons = (pageSize: number = 5, initialLevel: string = "ALL") => {
   const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalElements, setTotalElements] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [level, setLevel] = useState<string>(initialLevel); // "ALL", "BEGINNER", "INTERMEDIATE", "ADVANCE"
 
   // Thêm state để lưu số bài hoàn thành thực tế trên toàn hệ thống
   const [globalCompletedCount, setGlobalCompletedCount] = useState<number>(0);
 
-  const fetchLessons = useCallback(async (p?: number) => {
+  const fetchLessons = useCallback(async (p?: number, activeLevel?: string) => {
     try {
       setLoading(true);
       setError(null);
 
       const usePage = typeof p === "number" ? p : page;
+      const currentLevel = activeLevel || level;
+
+      // Build the Turkraft spring-filter query
+      let filterQuery = "";
+      if (currentLevel !== "ALL") {
+        filterQuery = `level:'${currentLevel}'`;
+      }
 
       // 1. Fetch dữ liệu phân trang cho danh sách hiển thị
-      const response = await callFetchLessonsPaginated(usePage, pageSize);
+      const response = await callFetchLessonsPaginated(usePage, pageSize, filterQuery);
       
       if (response.statusCode !== 200) {
         throw new Error("Non-200 response");
       }
 
-      setLessons(response.data.result);
+      setLessons(response.data.result as LessonWithProgress[]);
       setTotalPages(response.data.meta.pages);
       setTotalElements(response.data.meta.total);
       
@@ -51,9 +60,8 @@ export const useLessons = (pageSize: number = 5) => {
         setPage(pageNumberFromApi);
       }
 
-      // 2. Fetch dữ liệu tổng quát để đếm số bài hoàn thành (Giống logic Profile)
-      // Chúng ta fetch 100 bài để đảm bảo quét hết các bài đã làm ở các trang khác
-      const resFull = await callFetchLessonsPaginated(1, 100);
+      // 2. Fetch dữ liệu tổng quát của level đó để đếm số bài hoàn thành thực tế
+      const resFull = await callFetchLessonsPaginated(1, 100, filterQuery);
       if (resFull?.data?.result) {
         const allLessons = resFull.data.result as any[];
         const count = allLessons.filter(
@@ -68,11 +76,11 @@ export const useLessons = (pageSize: number = 5) => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, level]);
 
   useEffect(() => {
-    fetchLessons(page);
-  }, [page, pageSize]);
+    fetchLessons(page, level);
+  }, [page, pageSize, level]);
 
   const updateLessonProgress = useCallback((lessonId: string, progress: number) => {
     setLessons(prev =>
@@ -96,7 +104,7 @@ export const useLessons = (pageSize: number = 5) => {
 
   // Sửa: Trả về stats dựa trên số lượng tổng (Global)
   const getStats = useCallback(() => {
-    // Lưu ý: totalExercises và hoursSpent vẫn tính trên 5 bài hiện tại (có thể sửa nếu cần)
+    // Lưu ý: totalExercises và hoursSpent vẫn tính trên các bài hiện tại
     const totalExercises = lessons.reduce((sum, lesson) => sum + lesson.exercises, 0);
     const completedExercises = lessons
       .filter(l => l.progress === 100)
@@ -117,17 +125,24 @@ export const useLessons = (pageSize: number = 5) => {
   const goFirst = () => setPage(1);
   const goLast = () => setPage(totalPages);
 
+  const changeLevel = (newLevel: string) => {
+    setLevel(newLevel);
+    setPage(1);
+  };
+
   return {
     lessons,
     page,
     totalPages,
     totalElements,
     pageSize,
+    level,
+    changeLevel,
     hasNext: page < totalPages,
     hasPrev: page > 1,
     loading,
     error,
-    refetch: () => fetchLessons(page),
+    refetch: () => fetchLessons(page, level),
     goToPage,
     nextPage: goNext,
     prevPage: goPrev,
