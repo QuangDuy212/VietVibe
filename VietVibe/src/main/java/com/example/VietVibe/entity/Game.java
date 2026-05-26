@@ -40,6 +40,8 @@ public class Game {
     @Enumerated(EnumType.STRING)
     GameType type; //
 
+    boolean deleted = false;
+
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     List<Question> questions = new ArrayList<>();

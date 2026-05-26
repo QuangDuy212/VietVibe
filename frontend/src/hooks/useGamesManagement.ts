@@ -1,32 +1,22 @@
-// src/hooks/useGamesManagement.ts
 import { useEffect, useState } from "react";
 import {
   callGetGames,
-  callCreateGame,
-  callUpdateGame,
   callDeleteGame,
-  callGetGameDetail,
+  callRestoreGame,
+  callCountAllGames,
+  callCountActiveGames,
+  callCountDeletedGames
 } from "@/config/api";
 import {
   IBackendRes,
   IGame,
   IPaginationRes,
-  IQuestion,
-  IAnswer,
 } from "@/types/common.type";
 import { toast } from "sonner";
-
-export type GameDialogMode = "view" | "create" | "edit";
 
 export const useGamesManagement = () => {
   const [games, setGames] = useState<IGame[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [gameDialogOpen, setGameDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<GameDialogMode>("view");
-  const [currentGame, setCurrentGame] = useState<IGame | null>(null);
-  const [dialogLoading, setDialogLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -36,15 +26,42 @@ export const useGamesManagement = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalItems, setTotalItems] = useState<number>(0);
 
-  // search & filter (đẩy xuống BE dùng spring-filter)
+  // search & filter
   type GameType = IGame["type"];
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | GameType>("ALL");
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "deleted">("all");
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [actionTarget, setActionTarget] = useState<{
+    id: string;
+    label: string;
+    action: "delete" | "restore" | "bulkDelete" | "bulkRestore";
+  } | null>(null);
+  const [stats, setStats] = useState({ total: 0, active: 0, deleted: 0 });
 
   useEffect(() => {
+    fetchStats();
     fetchGames(1, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeTab]);
+
+  const fetchStats = async () => {
+    try {
+      const [total, active, deleted] = await Promise.all([
+        callCountAllGames(),
+        callCountActiveGames(),
+        callCountDeletedGames()
+      ]);
+      setStats({
+        total: total?.data?.count || 0,
+        active: active?.data?.count || 0,
+        deleted: deleted?.data?.count || 0
+      });
+    } catch (e) {
+      console.error("Failed to fetch game stats", e);
+    }
+  };
 
   // ====== SEARCH & FILTER: build expression cho BE (spring-filter) ======
   const buildFilterExpression = () => {
@@ -59,11 +76,12 @@ export const useGamesManagement = () => {
     }
 
     if (typeFilter !== "ALL") {
-      // enum GameType: MULTIPLE_CHOICE / SENTENCE_ORDER / LISTENING_CHOICE
       parts.push(`type : '${typeFilter}'`);
     }
 
-    // nếu có cả search + type → nối bằng and
+    if (activeTab === "active") parts.push("deleted: false");
+    else if (activeTab === "deleted") parts.push("deleted: true");
+
     return parts.join(" and ");
   };
 
@@ -74,6 +92,7 @@ export const useGamesManagement = () => {
   ) => {
     try {
       setLoading(true);
+      setSelectedIds(new Set());
 
       const filterExpr = buildFilterExpression();
 
@@ -129,316 +148,11 @@ export const useGamesManagement = () => {
   const clearFilters = () => {
     setSearchKeyword("");
     setTypeFilter("ALL");
+    setActiveTab("all");
     fetchGames(1, pageSize);
   };
 
-  // ====== OPEN DIALOG: CREATE / VIEW / EDIT ======
-
-  const openCreateGameDialog = () => {
-    setDialogMode("create");
-    setCurrentGame({
-      _id: "",
-      name: "",
-      description: "",
-      type: "MULTIPLE_CHOICE",
-      questions: [],
-    });
-    setGameDialogOpen(true);
-  };
-
-  const openGameDialog = async (game: IGame, mode: GameDialogMode) => {
-    try {
-      setDialogMode(mode);
-      setGameDialogOpen(true);
-      setDialogLoading(true);
-
-      const res = (await callGetGameDetail(
-        game._id
-      )) as unknown as IBackendRes<IGame>;
-
-      if (res.data) {
-        const raw = res.data as any;
-
-        const rawQuestions =
-          raw.questions ?? raw.questionList ?? raw.gameQuestions ?? [];
-
-        const questions: IQuestion[] = Array.isArray(rawQuestions)
-          ? rawQuestions.map((q: any): IQuestion => {
-              const rawAnswers =
-                q.answers ?? q.answerList ?? q.answerDTOs ?? [];
-
-              const answers: IAnswer[] = Array.isArray(rawAnswers)
-                ? rawAnswers.map((a: any): IAnswer => {
-                    const content =
-                      a.content ?? a.text ?? a.answerContent ?? "";
-
-                    const boolIsCorrect = !!a.isCorrect;
-
-                    let orderIndex: number | undefined = undefined;
-                    if (typeof a.orderIndex === "number")
-                      orderIndex = a.orderIndex;
-                    else if (typeof a.order === "number") orderIndex = a.order;
-                    else if (typeof a.index === "number") orderIndex = a.index;
-                    else if (a.orderIndex != null)
-                      orderIndex = Number(a.orderIndex);
-                    else if (a.order != null) orderIndex = Number(a.order);
-                    else if (a.index != null) orderIndex = Number(a.index);
-
-                    return {
-                      _id: a._id,
-                      content,
-                      isCorrect: boolIsCorrect,
-                      orderIndex,
-                    };
-                  })
-                : [];
-
-              return {
-                _id: q._id,
-                content: q.content ?? q.text ?? "",
-                imageUrl: q.imageUrl,
-                audioUrl: q.audioUrl,
-                answers,
-              };
-            })
-          : [];
-
-        const mappedGame: IGame = {
-          _id: raw._id,
-          name: raw.name,
-          description: raw.description,
-          type: raw.type,
-          questions,
-        };
-
-        setCurrentGame(mappedGame);
-      } else {
-        toast.error("Game not found");
-        setCurrentGame(null);
-      }
-    } catch (error) {
-      console.error("Error loading game detail:", error);
-      toast.error("Failed to load game detail");
-      setCurrentGame(null);
-    } finally {
-      setDialogLoading(false);
-    }
-  };
-
-  const closeGameDialog = () => {
-    setGameDialogOpen(false);
-    setCurrentGame(null);
-    setDialogMode("view");
-  };
-
-  // ====== FLAGS ======
-
-  const isViewMode = dialogMode === "view";
-  const isCreateMode = dialogMode === "create";
-  const isEditMode = dialogMode === "edit";
-  const canEdit = isCreateMode || isEditMode;
-
-  // ====== UPDATE GAME FIELD ======
-  const updateGameField = (field: keyof IGame, value: any) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => (prev ? { ...prev, [field]: value } : prev));
-  };
-
-  // ====== QUESTIONS / ANSWERS ======
-
-  const addQuestion = () => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-
-      let defaultAnswers: IAnswer[] = [];
-
-      if (prev.type === "MULTIPLE_CHOICE" || prev.type === "LISTENING_CHOICE") {
-        defaultAnswers = [0, 1, 2, 3].map((index) => ({
-          content: "",
-          isCorrect: index === 0,
-        }));
-      } else if (prev.type === "SENTENCE_ORDER") {
-        defaultAnswers = [
-          {
-            content: "",
-            orderIndex: 0,
-          },
-        ];
-      }
-
-      const newQuestion: IQuestion = {
-        content: "",
-        imageUrl: undefined,
-        audioUrl: undefined,
-        answers: defaultAnswers,
-      };
-
-      questions.push(newQuestion);
-      return { ...prev, questions };
-    });
-  };
-
-  const removeQuestion = (qIndex: number) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-      questions.splice(qIndex, 1);
-      return { ...prev, questions };
-    });
-  };
-
-  const updateQuestionField = (
-    qIndex: number,
-    field: keyof IQuestion,
-    value: any
-  ) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-      const q = { ...questions[qIndex], [field]: value };
-      questions[qIndex] = q;
-      return { ...prev, questions };
-    });
-  };
-
-  const addAnswer = (qIndex: number) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-      const q = { ...questions[qIndex] };
-      const answers = q.answers ? [...q.answers] : [];
-      const base: IAnswer = { content: "" };
-
-      if (prev.type === "SENTENCE_ORDER") {
-        base.orderIndex = 0;
-      } else {
-        base.isCorrect = false;
-      }
-
-      answers.push(base);
-      q.answers = answers;
-      questions[qIndex] = q;
-      return { ...prev, questions };
-    });
-  };
-
-  const removeAnswer = (qIndex: number, aIndex: number) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-      const q = { ...questions[qIndex] };
-      const answers = q.answers ? [...q.answers] : [];
-      answers.splice(aIndex, 1);
-      q.answers = answers;
-      questions[qIndex] = q;
-      return { ...prev, questions };
-    });
-  };
-
-  const updateAnswerField = (
-    qIndex: number,
-    aIndex: number,
-    field: keyof IAnswer,
-    value: any
-  ) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-      const q = { ...questions[qIndex] };
-      const answers = q.answers ? [...q.answers] : [];
-      const a = { ...answers[aIndex], [field]: value };
-      answers[aIndex] = a;
-      q.answers = answers;
-      questions[qIndex] = q;
-      return { ...prev, questions };
-    });
-  };
-
-  const setCorrectAnswer = (qIndex: number, aIndex: number) => {
-    if (!canEdit) return;
-    setCurrentGame((prev) => {
-      if (!prev) return prev;
-      const questions = [...(prev.questions ?? [])];
-      const q = { ...questions[qIndex] };
-      const answers = q.answers ? [...q.answers] : [];
-
-      const updated = answers.map((ans, idx) => ({
-        ...ans,
-        isCorrect: idx === aIndex,
-      }));
-
-      q.answers = updated;
-      questions[qIndex] = q;
-      return { ...prev, questions };
-    });
-  };
-
-  // ====== SAVE (CREATE / UPDATE) ======
-
-  const handleSaveGame = async () => {
-    if (!currentGame || !canEdit) return;
-
-    if (!currentGame.name.trim()) {
-      toast.error("Please enter a game name");
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const payload = {
-        name: currentGame.name.trim(),
-        description: (currentGame.description || "").trim(),
-        type: currentGame.type,
-        questions: (currentGame.questions ?? []).map((q) => ({
-          content: q.content,
-          imageUrl: q.imageUrl,
-          audioUrl: q.audioUrl,
-          answers: (q.answers ?? []).map((a) => ({
-            content: a.content,
-            isCorrect: a.isCorrect,
-            orderIndex: a.orderIndex,
-          })),
-        })),
-      };
-
-      let res: IBackendRes<IGame>;
-
-      if (isCreateMode) {
-        res = (await callCreateGame(payload)) as unknown as IBackendRes<IGame>;
-      } else {
-        res = (await callUpdateGame(
-          currentGame._id,
-          payload
-        )) as unknown as IBackendRes<IGame>;
-      }
-
-      if (res.error) {
-        toast.error(String(res.error));
-        return;
-      }
-
-      toast.success(
-        isCreateMode ? "Game created successfully" : "Game updated successfully"
-      );
-      closeGameDialog();
-      fetchGames(1, pageSize);
-    } catch (error) {
-      console.error("Error saving game:", error);
-      toast.error("Failed to save game");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ====== DELETE ======
+  // ====== DELETE & BULK ACTIONS ======
 
   const deleteGame = async (id: string) => {
     try {
@@ -449,8 +163,9 @@ export const useGamesManagement = () => {
         toast.error(String(res.error));
         return;
       }
-      toast.success("Game deleted");
+      toast.success("Game moved to trash");
       fetchGames(1, pageSize);
+      fetchStats();
     } catch (error) {
       console.error("Error deleting game:", error);
       toast.error("An error occurred");
@@ -459,15 +174,56 @@ export const useGamesManagement = () => {
     }
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === games.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(games.map((g) => g._id)));
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedIds(newSelected);
+  };
+
+  const openConfirm = (id: string, label: string, action: "delete" | "restore") => {
+    setActionTarget({ id, label, action });
+  };
+
+  const openBulkConfirm = (action: "bulkDelete" | "bulkRestore") => {
+    setActionTarget({ id: "", label: `${selectedIds.size} game${selectedIds.size > 1 ? "s" : ""}`, action });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!actionTarget) return;
+
+    try {
+      if (actionTarget.action === "delete") {
+        await callDeleteGame(actionTarget.id);
+        toast.success("Game moved to trash");
+      } else if (actionTarget.action === "restore") {
+        await callRestoreGame(actionTarget.id);
+        toast.success("Game restored");
+      } else if (actionTarget.action === "bulkDelete") {
+        await Promise.all([...selectedIds].map((id) => callDeleteGame(id)));
+        toast.success(`${selectedIds.size} game(s) moved to trash`);
+      } else if (actionTarget.action === "bulkRestore") {
+        await Promise.all([...selectedIds].map((id) => callRestoreGame(id)));
+        toast.success(`${selectedIds.size} game(s) restored`);
+      }
+      setSelectedIds(new Set());
+      fetchGames(1, pageSize);
+      fetchStats();
+    } catch (error) {
+      toast.error("An error occurred while processing the request");
+    }
+    setActionTarget(null);
+  };
+
   return {
     // state
     games,
     loading,
-    gameDialogOpen,
-    dialogMode,
-    currentGame,
-    dialogLoading,
-    saving,
     deleteId,
 
     // pagination
@@ -479,28 +235,13 @@ export const useGamesManagement = () => {
     // search/filter
     searchKeyword,
     typeFilter,
-
-    // flags
-    isViewMode,
-    isCreateMode,
-    isEditMode,
-    canEdit,
+    activeTab,
+    selectedIds,
+    actionTarget,
+    stats,
 
     // setters / actions
-    setGameDialogOpen,
     setDeleteId,
-    openCreateGameDialog,
-    openGameDialog,
-    closeGameDialog,
-    updateGameField,
-    addQuestion,
-    removeQuestion,
-    updateQuestionField,
-    addAnswer,
-    removeAnswer,
-    updateAnswerField,
-    setCorrectAnswer,
-    handleSaveGame,
     deleteGame,
     changePage,
     changePageSize,
@@ -508,7 +249,15 @@ export const useGamesManagement = () => {
     // search/filter actions
     setSearchKeyword,
     setTypeFilter,
+    setActiveTab,
     applyFilters,
     clearFilters,
+
+    toggleSelectAll,
+    toggleSelect,
+    openConfirm,
+    openBulkConfirm,
+    handleConfirmAction,
+    setActionTarget,
   };
 };

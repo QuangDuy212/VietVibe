@@ -88,4 +88,25 @@ public class GameController {
     ResponseEntity<CountElementResponse> countGames() {
         return ResponseEntity.ok().body(this.gameService.countGames());
     }
+
+    @PutMapping("/{id}/restore")
+    @ApiMessage("Restore a game success")
+    ResponseEntity<ApiString> restoreGame(@PathVariable long id) {
+        gameService.restoreGame(id);
+        return ResponseEntity.ok().body(ApiString.builder()
+                .message("Restored")
+                .build());
+    }
+
+    @GetMapping("/count/active")
+    @ApiMessage("Count active games success")
+    ResponseEntity<CountElementResponse> countActiveGames() {
+        return ResponseEntity.ok().body(this.gameService.countActiveGames());
+    }
+
+    @GetMapping("/count/deleted")
+    @ApiMessage("Count deleted games success")
+    ResponseEntity<CountElementResponse> countDeletedGames() {
+        return ResponseEntity.ok().body(this.gameService.countDeletedGames());
+    }
 }

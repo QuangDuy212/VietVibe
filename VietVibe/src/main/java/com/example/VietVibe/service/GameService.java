@@ -152,8 +152,18 @@ public class GameService {
         return gameMapper.toGameResponse(saved);
     }
 
+    @Transactional
     public void delete(long id) {
-        gameRepository.deleteById(id);
+        Game game = gameRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_EXISTED));
+        game.setDeleted(true);
+        gameRepository.save(game);
+    }
+
+    @Transactional
+    public void restoreGame(long id) {
+        Game game = gameRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.GAME_NOT_EXISTED));
+        game.setDeleted(false);
+        gameRepository.save(game);
     }
 
     // Mới: Tăng timesPlayed
@@ -173,6 +183,16 @@ public class GameService {
 
     public CountElementResponse countGames() {
         long count = this.gameRepository.count();
+        return CountElementResponse.builder().count(count).build();
+    }
+
+    public CountElementResponse countActiveGames() {
+        long count = this.gameRepository.countByDeletedFalse();
+        return CountElementResponse.builder().count(count).build();
+    }
+
+    public CountElementResponse countDeletedGames() {
+        long count = this.gameRepository.countByDeletedTrue();
         return CountElementResponse.builder().count(count).build();
     }
 

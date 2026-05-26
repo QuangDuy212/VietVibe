@@ -140,6 +140,18 @@ export const callCountAllGames = () =>{
   return axios.get<{count: number}>('/api/v1/games/count/total');
 }
 
+export const callCountActiveGames = () =>{
+  return axios.get<{count: number}>('/api/v1/games/count/active');
+}
+
+export const callCountDeletedGames = () =>{
+  return axios.get<{count: number}>('/api/v1/games/count/deleted');
+}
+
+export const callRestoreGame = (id: string) => {
+    return axios.put<IBackendRes<string>>(`/api/v1/games/${id}/restore`);
+}
+
 
 //MODULE LESSONS
 const PREFIX_API = "api/v1/lessons";

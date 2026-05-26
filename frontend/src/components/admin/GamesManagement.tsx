@@ -45,22 +45,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { Gamepad2, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Gamepad2, Plus, Edit, Trash2, Eye, Check, RotateCcw, Search, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { IGame } from "@/types/common.type";
 import { useGamesManagement } from "@/hooks/useGamesManagement";
 
 type Game = IGame;
 
-const GamesManagement = () => {
+interface GamesManagementProps {
+  onCreateGame: () => void;
+  onEditGame: (game: Game) => void;
+  onViewGame: (game: Game) => void;
+}
+
+const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManagementProps) => {
   const {
     games,
     loading,
-    gameDialogOpen,
-    dialogMode,
-    currentGame,
-    dialogLoading,
-    saving,
-    deleteId,
 
     page,
     pageSize,
@@ -71,34 +72,45 @@ const GamesManagement = () => {
     searchKeyword,
     typeFilter,
 
-    isCreateMode,
-    isEditMode,
-    canEdit,
-
-    setGameDialogOpen,
-    setDeleteId,
-    openCreateGameDialog,
-    openGameDialog,
-    closeGameDialog,
-    updateGameField,
-    addQuestion,
-    removeQuestion,
-    updateQuestionField,
-    addAnswer,
-    removeAnswer,
-    updateAnswerField,
-    setCorrectAnswer,
-    handleSaveGame,
-    deleteGame,
     changePage,
     changePageSize,
 
     // search/filter actions
     setSearchKeyword,
     setTypeFilter,
+    setActiveTab,
     applyFilters,
     clearFilters,
+    activeTab,
+    selectedIds,
+    actionTarget,
+    stats,
+    toggleSelectAll,
+    toggleSelect,
+    openConfirm,
+    openBulkConfirm,
+    handleConfirmAction,
   } = useGamesManagement();
+
+  const confirmTitle = () => {
+    switch (actionTarget?.action) {
+      case "delete": return "Move to Trash?";
+      case "restore": return "Restore Game?";
+      case "bulkDelete": return "Move to Trash?";
+      case "bulkRestore": return "Restore Games?";
+      default: return "Confirm";
+    }
+  };
+
+  const confirmMessage = () => {
+    switch (actionTarget?.action) {
+      case "delete": return `Are you sure you want to move "${actionTarget.label}" to trash?`;
+      case "restore": return `Are you sure you want to restore "${actionTarget.label}"?`;
+      case "bulkDelete": return `Are you sure you want to move ${actionTarget.label} to trash?`;
+      case "bulkRestore": return `Are you sure you want to restore ${actionTarget.label}?`;
+      default: return "";
+    }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -142,101 +154,167 @@ const GamesManagement = () => {
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
 
+  const statCards = [
+    { label: "Total Games", value: stats.total, icon: Gamepad2, iconBg: "bg-blue-50", iconColor: "text-blue-600", subtitle: "All games", subtitleColor: "text-blue-600" },
+    { label: "Active Games", value: stats.active, icon: Check, iconBg: "bg-green-50", iconColor: "text-green-600", subtitle: "Currently active", subtitleColor: "text-green-600" },
+    { label: "Deleted Games", value: stats.deleted, icon: Trash2, iconBg: "bg-red-50", iconColor: "text-red-500", subtitle: "Moved to trash", subtitleColor: "text-red-500" },
+  ];
+
+  if (loading && games.length === 0) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-md">
+        <CardContent className="p-8">
+          <div className="text-center text-muted-foreground">Loading...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <>
-      <Card className="border-0 shadow-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Gamepad2 className="h-5 w-5" />
-                Games List
-              </CardTitle>
-              <CardDescription>
-                Total: {totalItems} games
-              </CardDescription>
+    <div className="space-y-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={stat.label}
+              className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+                  <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                </div>
+              </div>
+              <p className={`text-xs ${stat.subtitleColor} font-medium`}>{stat.subtitle}</p>
             </div>
-            <div className="flex items-center gap-2">
-              {loading && (
-                <span className="text-xs text-muted-foreground">
-                  Updating...
-                </span>
-              )}
-              <Button onClick={openCreateGameDialog} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Game
-              </Button>
+          );
+        })}
+      </div>
+
+      {/* Main Table Card */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {/* Table Header / Toolbar */}
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Game Management</h2>
+              <p className="text-sm text-gray-400 mt-0.5">Create, manage, and organize all games</p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {/* Search + Filter (BE) */}
-          <div className="flex flex-col md:flex-row gap-3 mb-4 items-start md:items-center justify-between">
-            <div className="flex-1 flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Search by name or description..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") applyFilters();
-                }}
-                className="sm:max-w-sm"
-              />
-              <Button
-                variant="outline"
-                className="sm:w-auto"
-                onClick={applyFilters}
-              >
-                Search
-              </Button>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              {(["all", "active", "deleted"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                    activeTab === tab
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name or description..."
+                  className="pl-9 pr-9 h-9 w-full sm:w-72 md:w-80 text-sm border-gray-200 rounded-lg bg-gray-50 focus:bg-white transition-all"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applyFilters();
+                  }}
+                />
+                {searchKeyword && (
+                  <X
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600"
+                    onClick={() => {
+                      setSearchKeyword("");
+                      applyFilters();
+                    }}
+                  />
+                )}
+              </div>
               <Select
                 value={typeFilter}
                 onValueChange={(value) =>
                   setTypeFilter(value as "ALL" | Game["type"])
                 }
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] h-9">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All types</SelectItem>
-                  <SelectItem value="MULTIPLE_CHOICE">
-                    Multiple choice
-                  </SelectItem>
-                  <SelectItem value="SENTENCE_ORDER">
-                    Sentence order
-                  </SelectItem>
-                  <SelectItem value="LISTENING_CHOICE">
-                    Listening choice
-                  </SelectItem>
+                  <SelectItem value="MULTIPLE_CHOICE">Multiple choice</SelectItem>
+                  <SelectItem value="SENTENCE_ORDER">Sentence order</SelectItem>
+                  <SelectItem value="LISTENING_CHOICE">Listening choice</SelectItem>
                 </SelectContent>
               </Select>
-
-              {(searchKeyword.trim() || typeFilter !== "ALL") && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  Clear
-                </Button>
-              )}
+              <Button
+                onClick={onCreateGame}
+                className="gap-2 h-9 w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4" />
+                Add Game
+              </Button>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="rounded-xl border overflow-hidden relative">
-            {/* overlay loading nhẹ nếu muốn */}
-            {loading && (
-              <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] pointer-events-none flex items-start justify-end p-2">
-                <span className="text-xs text-muted-foreground">
-                  Loading...
-                </span>
+          {/* Bulk Actions Banner */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 mt-4 px-5 py-3.5 rounded-xl bg-red-50 border border-red-100">
+              <span className="text-base font-semibold text-red-600">
+                {selectedIds.size} item{selectedIds.size > 1 ? "s" : ""} selected
+              </span>
+              <div className="ml-auto flex items-center gap-3">
+                {activeTab !== "deleted" && (
+                  <Button
+                    onClick={() => openBulkConfirm("bulkDelete")}
+                    variant="outline"
+                    className="gap-2 rounded-xl text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 h-10 px-5 font-medium"
+                  >
+                    <Trash2 className="h-5 w-5" /> Move to Trash
+                  </Button>
+                )}
+                {activeTab !== "active" && (
+                  <Button
+                    onClick={() => openBulkConfirm("bulkRestore")}
+                    variant="outline"
+                    className="gap-2 rounded-xl text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 h-10 px-5 font-medium"
+                  >
+                    <RotateCcw className="h-5 w-5" /> Restore
+                  </Button>
+                )}
               </div>
-            )}
+            </div>
+          )}
+        </div>
 
+        <div className="overflow-x-auto relative">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
+                  {activeTab !== "all" && (
+                    <TableHead className="w-12 pl-6">
+                      <Checkbox
+                        checked={selectedIds.size === games.length && games.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Type</TableHead>
@@ -246,6 +324,15 @@ const GamesManagement = () => {
               <TableBody>
                 {games.map((game) => (
                   <TableRow key={game._id} className="hover:bg-muted/30">
+                    {activeTab !== "all" && (
+                      <TableCell className="pl-6 py-4">
+                        <Checkbox
+                          checked={selectedIds.has(game._id)}
+                          onCheckedChange={() => toggleSelect(game._id)}
+                          aria-label={`Select ${game.name}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium">{game.name}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       {game.description}
@@ -261,27 +348,42 @@ const GamesManagement = () => {
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openGameDialog(game, "view")}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                          onClick={() => onViewGame(game)}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
-                          onClick={() => openGameDialog(game, "edit")}
+                          className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                          onClick={() => onEditGame(game)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeleteId(game._id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {activeTab === "deleted" ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => openConfirm(game._id, game.name, "restore")}
+                            title="Restore"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => openConfirm(game._id, game.name, "delete")}
+                            title="Move to trash"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -297,24 +399,13 @@ const GamesManagement = () => {
                     </TableCell>
                   </TableRow>
                 )}
-
-                {loading && games.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-muted-foreground py-6"
-                    >
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </div>
 
           {/* Pagination controls */}
           {totalItems > 0 && (
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 mt-4 px-1">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3 mt-4 px-1 pb-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>
                   Showing {startItem}-{endItem} of {totalItems}
@@ -364,401 +455,40 @@ const GamesManagement = () => {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Dialog create / view / edit */}
-      <Dialog
-        open={gameDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) closeGameDialog();
-          else setGameDialogOpen(open);
-        }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              {isCreateMode
-                ? "Create New Game"
-                : isEditMode
-                ? "Edit Game & Questions"
-                : "View Game Detail"}
-            </DialogTitle>
-            <DialogDescription>
-              {currentGame
-                ? renderTypeDescription(currentGame.type)
-                : "Game detail"}
-            </DialogDescription>
-          </DialogHeader>
-
-          {dialogLoading ? (
-            <div className="py-6 text-center text-muted-foreground">
-              Loading...
-            </div>
-          ) : !currentGame ? (
-            <div className="py-6 text-center text-muted-foreground">
-              Game not found
-            </div>
-          ) : (
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              {/* Game info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Name</Label>
-                  <Input
-                    value={currentGame.name}
-                    disabled={!canEdit}
-                    onChange={(e) => updateGameField("name", e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label>Type</Label>
-                  {isCreateMode ? (
-                    <Select
-                      value={currentGame.type}
-                      onValueChange={(value) =>
-                        updateGameField("type", value as Game["type"])
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose game type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MULTIPLE_CHOICE">
-                          Multiple choice
-                        </SelectItem>
-                        <SelectItem value="SENTENCE_ORDER">
-                          Sentence order
-                        </SelectItem>
-                        <SelectItem value="LISTENING_CHOICE">
-                          Listening choice
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="mt-2">
-                      <Badge className={getTypeColor(currentGame.type)}>
-                        {renderTypeLabel(currentGame.type)}
-                      </Badge>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Game type cannot be changed.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="col-span-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={currentGame.description}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      updateGameField("description", e.target.value)
-                    }
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              {/* Questions */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>
-                    Questions ({currentGame.questions?.length ?? 0})
-                  </Label>
-                  {canEdit && (
-                    <Button size="sm" className="gap-2" onClick={addQuestion}>
-                      <Plus className="h-4 w-4" />
-                      Add Question
-                    </Button>
-                  )}
-                </div>
-
-                {(currentGame.questions ?? []).length === 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    No questions yet.
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {currentGame.questions?.map((q, qIndex) => (
-                    <Card key={qIndex} className="border">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                        <div>
-                          <CardTitle className="text-base">
-                            Question #{qIndex + 1}
-                          </CardTitle>
-                        </div>
-                        {canEdit && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => removeQuestion(qIndex)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <Label>Question Content</Label>
-                          <Textarea
-                            value={q.content}
-                            disabled={!canEdit}
-                            onChange={(e) =>
-                              updateQuestionField(
-                                qIndex,
-                                "content",
-                                e.target.value
-                              )
-                            }
-                            rows={2}
-                          />
-                        </div>
-
-                        {currentGame.type !== "LISTENING_CHOICE" && (
-                          <div>
-                            <Label>Image URL (optional)</Label>
-                            <Input
-                              value={q.imageUrl ?? ""}
-                              disabled={!canEdit}
-                              onChange={(e) =>
-                                updateQuestionField(
-                                  qIndex,
-                                  "imageUrl",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                        )}
-
-                        {currentGame.type === "LISTENING_CHOICE" && (
-                          <div>
-                            <Label>Audio URL</Label>
-                            <Input
-                              value={q.audioUrl ?? ""}
-                              disabled={!canEdit}
-                              onChange={(e) =>
-                                updateQuestionField(
-                                  qIndex,
-                                  "audioUrl",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                        )}
-
-                        {/* ANSWERS */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label>Answers</Label>
-                            {canEdit && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-2"
-                                onClick={() => addAnswer(qIndex)}
-                              >
-                                <Plus className="h-4 w-4" />
-                                Add Answer
-                              </Button>
-                            )}
-                          </div>
-
-                          {(!q.answers || q.answers.length === 0) && (
-                            <div className="text-xs text-muted-foreground">
-                              No answers yet.
-                            </div>
-                          )}
-
-                          <div className="space-y-2">
-                            {q.answers?.map((a, aIndex) => (
-                              <div
-                                key={aIndex}
-                                className={`flex flex-col gap-2 rounded-md border p-3 ${
-                                  !canEdit && a.isCorrect
-                                    ? "border-green-400/70 bg-green-50/40"
-                                    : ""
-                                }`}
-                              >
-                                <div className="flex justify-between items-center gap-2">
-                                  <Label className="text-xs">
-                                    Answer #{aIndex + 1}
-                                    {!canEdit && a.isCorrect && (
-                                      <span className="ml-1 text-[10px] text-green-600 font-semibold">
-                                        (correct)
-                                      </span>
-                                    )}
-                                  </Label>
-                                  {canEdit && (
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() =>
-                                        removeAnswer(qIndex, aIndex)
-                                      }
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  )}
-                                </div>
-
-                                <Input
-                                  value={a.content}
-                                  disabled={!canEdit}
-                                  onChange={(e) =>
-                                    updateAnswerField(
-                                      qIndex,
-                                      aIndex,
-                                      "content",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Answer content"
-                                />
-
-                                {currentGame.type === "SENTENCE_ORDER" ? (
-                                  <div className="flex items-center gap-2">
-                                    <Label className="text-xs">
-                                      Order Index
-                                    </Label>
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="outline"
-                                        disabled={!canEdit}
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                          updateAnswerField(
-                                            qIndex,
-                                            aIndex,
-                                            "orderIndex",
-                                            Math.max(
-                                              0,
-                                              (a.orderIndex ?? 0) - 1
-                                            )
-                                          )
-                                        }
-                                      >
-                                        -
-                                      </Button>
-                                      <Input
-                                        type="number"
-                                        className="w-20 h-8"
-                                        disabled={!canEdit}
-                                        value={a.orderIndex ?? 0}
-                                        onChange={(e) =>
-                                          updateAnswerField(
-                                            qIndex,
-                                            aIndex,
-                                            "orderIndex",
-                                            Number(e.target.value) || 0
-                                          )
-                                        }
-                                      />
-                                      <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="outline"
-                                        disabled={!canEdit}
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                          updateAnswerField(
-                                            qIndex,
-                                            aIndex,
-                                            "orderIndex",
-                                            (a.orderIndex ?? 0) + 1
-                                          )
-                                        }
-                                      >
-                                        +
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <label className="flex items-center gap-2 text-xs">
-                                    <input
-                                      type="radio"
-                                      name={`q-${qIndex}-correct`}
-                                      disabled={!canEdit}
-                                      checked={!!a.isCorrect}
-                                      onChange={() =>
-                                        setCorrectAnswer(qIndex, aIndex)
-                                      }
-                                    />
-                                    {canEdit
-                                      ? "Mark as correct answer"
-                                      : a.isCorrect
-                                      ? "Correct answer"
-                                      : "Incorrect answer"}
-                                  </label>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {canEdit &&
-                  (currentGame.questions?.length ?? 0) > 0 && (
-                    <div className="flex justify-end pt-2">
-                      <Button size="sm" className="gap-2" onClick={addQuestion}>
-                        <Plus className="h-4 w-4" />
-                        Add Question
-                      </Button>
-                    </div>
-                  )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={closeGameDialog}>
-              Close
-            </Button>
-            {canEdit && (
-              <Button onClick={handleSaveGame} disabled={saving}>
-                {saving
-                  ? isCreateMode
-                    ? "Creating..."
-                    : "Saving..."
-                  : isCreateMode
-                  ? "Create"
-                  : "Save Changes"}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirm delete */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+      {/* Confirm actions */}
+      <AlertDialog open={!!actionTarget} onOpenChange={() => setActionTarget(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm delete</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this game? This action cannot be
-              undone.
+            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+              {actionTarget?.action.includes("delete") ? (
+                <Trash2 className="h-5 w-5 text-red-500" />
+              ) : (
+                <RotateCcw className="h-5 w-5 text-emerald-500" />
+              )}
+              {confirmTitle()}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base mt-2">
+              {confirmMessage()}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="mt-6 gap-2">
+            <AlertDialogCancel className="rounded-xl border-gray-200">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteId && deleteGame(deleteId)}
+              className={`rounded-xl ${
+                actionTarget?.action.includes("delete")
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+              onClick={handleConfirmAction}
             >
-              Delete
+              {actionTarget?.action.includes("delete") ? "Move to Trash" : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 

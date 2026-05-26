@@ -65,6 +65,8 @@ const GameDetail = () => {
             return {
               id: q._id ?? q.id ?? qIndex,
               question: q.content ?? q.text ?? "",
+              imageUrl: q.imageUrl ?? null,
+              audioUrl: q.audioUrl ?? null,
               options,
               correctAnswer: correctIndex,
               correctOrder,
@@ -258,10 +260,31 @@ const GameDetail = () => {
             </Card>
             {!isGameFinished ? (
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">{currentQ.question}</CardTitle>
+                <CardHeader className="space-y-4 pb-2">
+                  <CardTitle className="text-xl leading-relaxed">{currentQ.question}</CardTitle>
+                  
+                  {currentQ.imageUrl && (
+                    <div className="flex justify-center mt-2">
+                      <img 
+                        src={currentQ.imageUrl} 
+                        alt="Question visual" 
+                        className="max-h-64 rounded-xl border border-gray-100 shadow-sm object-contain"
+                      />
+                    </div>
+                  )}
+                  
+                  {currentQ.audioUrl && (
+                    <div className="flex justify-center mt-4 w-full">
+                      <audio 
+                        controls 
+                        autoPlay
+                        src={currentQ.audioUrl} 
+                        className="w-full max-w-md h-12"
+                      />
+                    </div>
+                  )}
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-4">
                   {game?.type === 'SENTENCE_ORDER' ? (
                     <div className="space-y-6">
                       {/* Khu vực hiển thị đáp án đã chọn (ô vuông ở trên) */}
@@ -381,6 +404,7 @@ const GameDetail = () => {
                       value={selectedAnswer}
                       onValueChange={setSelectedAnswer}
                       disabled={showResult}
+                      className="grid gap-3"
                     >
                       {currentQ.options.map((option: any, index: number) => {
                         const isCorrect = index === currentQ.correctAnswer || option.isCorrect;

@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface GameRepository extends JpaRepository<Game, Long>, JpaSpecificationExecutor<Game> {
     List<Game> findByName(String name);
+    long countByDeletedFalse();
+    long countByDeletedTrue();
 }

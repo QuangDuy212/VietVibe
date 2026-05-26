@@ -9,10 +9,12 @@ import LessonsManagement from "@/components/admin/LessonsManagement";
 import UpdateLesson from "@/components/admin/UpdateLesson";
 import { ILesson } from "@/types/common.type";
 import GamesManagement from "@/components/admin/GamesManagement";
+import UpdateGame from "@/components/admin/UpdateGame";
 import { toast } from "sonner";
 import PointsManagement from "@/components/admin/PointsManagement";
 import { useAppSelector } from "@/redux/hook";
 import Dashboard from "@/components/admin/Dashboard";
+import { IGame } from "@/types/common.type";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Overview of system activity and performance" },
@@ -25,6 +27,9 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "edit-lesson": { title: "Edit Lesson", subtitle: "Modify lesson content" },
   "view-lesson": { title: "View Lesson", subtitle: "View lesson details" },
   games: { title: "Manage Games", subtitle: "Create, manage, and organize all games" },
+  "create-game": { title: "Create Game", subtitle: "Add a new game" },
+  "edit-game": { title: "Edit Game", subtitle: "Modify game details and questions" },
+  "view-game": { title: "View Game", subtitle: "View game details and questions" },
   points: { title: "Points & Rewards", subtitle: "Manage point transactions and reward rules" },
 };
 
@@ -35,6 +40,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<ILesson | null>(null);
+  const [selectedGame, setSelectedGame] = useState<IGame | null>(null);
   const user = useAppSelector(state => state.account.user);
   const isAccountLoading = useAppSelector(state => state.account.isLoading);
 
@@ -87,6 +93,9 @@ const Admin = () => {
     if (currentPath.startsWith("/admin/edit-lesson")) return "edit-lesson";
     if (currentPath.startsWith("/admin/view-lesson")) return "view-lesson";
     if (currentPath.startsWith("/admin/games")) return "games";
+    if (currentPath.startsWith("/admin/create-game")) return "create-game";
+    if (currentPath.startsWith("/admin/edit-game")) return "edit-game";
+    if (currentPath.startsWith("/admin/view-game")) return "view-game";
     if (currentPath.startsWith("/admin/points")) return "points";
     return "dashboard";
   };
@@ -162,7 +171,22 @@ const Admin = () => {
               <Route path="/view-lesson" element={
                 <UpdateLesson mode="view" lesson={selectedLesson} onBack={() => { navigate("/admin/lessons"); setSelectedLesson(null); }} />
               } />
-              <Route path="/games" element={<GamesManagement />} />
+              <Route path="/games" element={
+                <GamesManagement
+                  onCreateGame={() => navigate("/admin/create-game")}
+                  onEditGame={(game) => { setSelectedGame(game); navigate("/admin/edit-game"); }}
+                  onViewGame={(game) => { setSelectedGame(game); navigate("/admin/view-game"); }}
+                />
+              } />
+              <Route path="/create-game" element={
+                <UpdateGame mode="create" game={null} onBack={() => navigate("/admin/games")} />
+              } />
+              <Route path="/edit-game" element={
+                <UpdateGame mode="edit" game={selectedGame} onBack={() => { navigate("/admin/games"); setSelectedGame(null); }} />
+              } />
+              <Route path="/view-game" element={
+                <UpdateGame mode="view" game={selectedGame} onBack={() => { navigate("/admin/games"); setSelectedGame(null); }} />
+              } />
               <Route path="/points" element={<PointsManagement />} />
             </Routes>
           </div>

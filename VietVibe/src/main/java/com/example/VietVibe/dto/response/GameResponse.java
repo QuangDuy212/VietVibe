@@ -27,6 +27,7 @@ public class GameResponse {
     GameType type;
     int timesPlayed;  // Thêm
     int bestScore;    // Thêm
+    boolean deleted;
 
     ArrayList<Question> questions = new ArrayList<>();
 }
