@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import jakarta.validation.ConstraintViolation;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -34,7 +35,9 @@ public class GlobalExceptionHandler {
         apiResponse.setStatusCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
         apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
 
-        return ResponseEntity.badRequest().body(apiResponse);
+        return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiResponse);
     }
 
     @ExceptionHandler(value = HttpRequestMethodNotSupportedException.class)
@@ -44,7 +47,9 @@ public class GlobalExceptionHandler {
         apiResponse.setStatusCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
         apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
 
-        return ResponseEntity.badRequest().body(apiResponse);
+        return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiResponse);
     }
 
     @ExceptionHandler(value = AppException.class)
@@ -55,7 +60,9 @@ public class GlobalExceptionHandler {
         apiResponse.setStatusCode(errorCode.getCode());
         apiResponse.setMessage(errorCode.getMessage());
 
-        return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiResponse);
     }
 
     @ExceptionHandler(value = AccessDeniedException.class)
@@ -63,6 +70,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
 
         return ResponseEntity.status(errorCode.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(ApiResponse.builder()
                         .statusCode(errorCode.getCode())
                         .message(errorCode.getMessage())
@@ -74,6 +82,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
 
         return ResponseEntity.status(errorCode.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(ApiResponse.builder()
                         .statusCode(errorCode.getCode())
                         .message(exception.getMessage())
@@ -105,6 +114,8 @@ public class GlobalExceptionHandler {
         apiResponse.setMessage("Validation failed");
         apiResponse.setData(errors); // Đính kèm thông tin lỗi vào response
 
-        return ResponseEntity.badRequest().body(apiResponse);
+        return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiResponse);
     }
 }

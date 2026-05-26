@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
+import { ArrowUp } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import UsersManagement from "@/components/admin/UsersManagement";
@@ -43,6 +44,62 @@ const Admin = () => {
   const [selectedGame, setSelectedGame] = useState<IGame | null>(null);
   const user = useAppSelector(state => state.account.user);
   const isAccountLoading = useAppSelector(state => state.account.isLoading);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  const handleScroll = () => {
+    const isDivScrolled = scrollContainerRef.current 
+      ? scrollContainerRef.current.scrollTop > 150 
+      : false;
+    const isWindowScrolled = window.scrollY > 150;
+    setShowScrollTop(isDivScrolled || isWindowScrolled);
+  };
+
+  // Add robust scroll listener to both window and inner container div
+  useEffect(() => {
+    const handleScrollEvent = () => {
+      const isDivScrolled = scrollContainerRef.current 
+        ? scrollContainerRef.current.scrollTop > 150 
+        : false;
+      const isWindowScrolled = window.scrollY > 150;
+      setShowScrollTop(isDivScrolled || isWindowScrolled);
+    };
+
+    window.addEventListener("scroll", handleScrollEvent);
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScrollEvent);
+    }
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollEvent);
+      if (container) {
+        container.removeEventListener("scroll", handleScrollEvent);
+      }
+    };
+  }, [loading]);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  // Reset scroll on navigation
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isAccountLoading) {
@@ -138,7 +195,7 @@ const Admin = () => {
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 overflow-auto p-5">
+          <div className="flex-1 overflow-auto p-5" ref={scrollContainerRef} onScroll={handleScroll}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={
@@ -190,6 +247,17 @@ const Admin = () => {
               <Route path="/points" element={<PointsManagement />} />
             </Routes>
           </div>
+
+          {/* Floating Scroll to Top Button */}
+          {showScrollTop && (
+            <button
+              onClick={scrollToTop}
+              className="fixed bottom-6 right-6 z-50 h-11 w-11 rounded-full shadow-lg bg-primary hover:bg-primary/95 text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-0 cursor-pointer animate-in fade-in slide-in-from-bottom-5"
+              title="Scroll to top"
+            >
+              <ArrowUp className="h-5 w-5" />
+            </button>
+          )}
         </main>
       </div>
     </SidebarProvider>

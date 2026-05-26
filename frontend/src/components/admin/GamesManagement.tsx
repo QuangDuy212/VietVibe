@@ -1,4 +1,5 @@
 // src/components/admin/GamesManagement.tsx
+import React, { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -17,8 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -26,14 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +36,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { Gamepad2, Plus, Edit, Trash2, Eye, Check, RotateCcw, Search, X } from "lucide-react";
+import { 
+  Gamepad2, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  Check, 
+  RotateCcw, 
+  Search, 
+  X, 
+  ChevronLeft, 
+  ChevronRight, 
+  AlertTriangle 
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { IGame } from "@/types/common.type";
 import { useGamesManagement } from "@/hooks/useGamesManagement";
@@ -90,7 +94,13 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
     openConfirm,
     openBulkConfirm,
     handleConfirmAction,
+    setActionTarget,
   } = useGamesManagement();
+
+  // Dynamic filter application as the user types or filters
+  useEffect(() => {
+    applyFilters();
+  }, [searchKeyword, typeFilter]);
 
   const confirmTitle = () => {
     switch (actionTarget?.action) {
@@ -138,133 +148,139 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
     }
   };
 
-  const renderTypeDescription = (type: Game["type"]) => {
-    switch (type) {
-      case "MULTIPLE_CHOICE":
-        return "Each question has multiple answers, choose exactly one correct answer.";
-      case "SENTENCE_ORDER":
-        return "Each question contains sentence parts. Players must arrange them in the correct order (by order index).";
-      case "LISTENING_CHOICE":
-        return "Each question has an audio URL and one correct choice answer.";
-      default:
-        return "";
-    }
-  };
-
-  const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endItem = Math.min(page * pageSize, totalItems);
-
-  const statCards = [
-    { label: "Total Games", value: stats.total, icon: Gamepad2, iconBg: "bg-blue-50", iconColor: "text-blue-600", subtitle: "All games", subtitleColor: "text-blue-600" },
-    { label: "Active Games", value: stats.active, icon: Check, iconBg: "bg-green-50", iconColor: "text-green-600", subtitle: "Currently active", subtitleColor: "text-green-600" },
-    { label: "Deleted Games", value: stats.deleted, icon: Trash2, iconBg: "bg-red-50", iconColor: "text-red-500", subtitle: "Moved to trash", subtitleColor: "text-red-500" },
-  ];
-
   if (loading && games.length === 0) {
     return (
-      <Card className="bg-white border-gray-200 shadow-md">
+      <Card className="bg-white border-gray-200 shadow-md rounded-xl">
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Loading...</div>
+          <div className="text-center text-muted-foreground flex items-center justify-center gap-2">
+            <RotateCcw className="h-5 w-5 animate-spin text-gray-400" />
+            <span>Loading...</span>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
-                  <Icon className={`h-5 w-5 ${stat.iconColor}`} />
-                </div>
+    <div className="space-y-6">
+      {/* STATS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="rounded-xl border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Games</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats.total}</h3>
+                <p className="text-sm text-primary mt-2 font-medium">All registered games</p>
               </div>
-              <p className={`text-xs ${stat.subtitleColor} font-medium`}>{stat.subtitle}</p>
+              <div className="h-12 w-12 bg-blue-50 rounded-full flex items-center justify-center">
+                <Gamepad2 className="h-6 w-6 text-blue-500" />
+              </div>
             </div>
-          );
-        })}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Active Games</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats.active}</h3>
+                <p className="text-sm text-green-600 mt-2 font-medium">Currently active</p>
+              </div>
+              <div className="h-12 w-12 bg-green-50 rounded-full flex items-center justify-center">
+                <Check className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Deleted Games</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats.deleted}</h3>
+                <p className="text-sm text-red-500 mt-2 font-medium">Moved to trash</p>
+              </div>
+              <div className="h-12 w-12 bg-red-50 rounded-full flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-red-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Table Header / Toolbar */}
-        <div className="px-6 py-4 border-b border-gray-100">
-          <div className="flex items-start justify-between mb-4">
+      {/* MAIN TABLE CARD */}
+      <Card className="border border-gray-200 shadow-sm rounded-xl">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Game Management</h2>
-              <p className="text-sm text-gray-400 mt-0.5">Create, manage, and organize all games</p>
+              <CardTitle className="text-xl font-bold text-gray-900">Game Management</CardTitle>
+              <CardDescription className="text-gray-500 mt-1">Create, manage, and organize all games</CardDescription>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-6">
+            {/* Elegant Brand Coral Capsule Tabs */}
+            <div className="flex items-center gap-2 bg-gray-50/80 p-1.5 rounded-full border border-gray-100">
               {(["all", "active", "deleted"] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  onClick={() => {
+                    setActiveTab(tab);
+                  }}
+                  className={`px-5 py-2 text-sm font-semibold rounded-full transition-all duration-200 capitalize ${
                     activeTab === tab
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-[#ff6b6b] text-white shadow-md shadow-[#ff6b6b]/20"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab}
                 </button>
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-              <div className="relative w-full sm:w-auto">
+            <div className="flex items-center gap-3">
+              {/* Modern Search bar */}
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name or description..."
-                  className="pl-9 pr-9 h-9 w-full sm:w-72 md:w-80 text-sm border-gray-200 rounded-lg bg-gray-50 focus:bg-white transition-all"
+                  placeholder="Search by name..."
+                  className="pl-9 pr-9 h-10 w-full sm:w-64 bg-gray-50/50 border-gray-200 rounded-xl"
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") applyFilters();
-                  }}
                 />
                 {searchKeyword && (
                   <X
                     className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600"
-                    onClick={() => {
-                      setSearchKeyword("");
-                      applyFilters();
-                    }}
+                    onClick={() => setSearchKeyword("")}
                   />
                 )}
               </div>
+
+              {/* Game Type Select Filter */}
               <Select
                 value={typeFilter}
                 onValueChange={(value) =>
                   setTypeFilter(value as "ALL" | Game["type"])
                 }
               >
-                <SelectTrigger className="w-[180px] h-9">
+                <SelectTrigger className="w-[180px] h-10 rounded-xl border-gray-200 bg-gray-50/50">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="ALL">All types</SelectItem>
                   <SelectItem value="MULTIPLE_CHOICE">Multiple choice</SelectItem>
                   <SelectItem value="SENTENCE_ORDER">Sentence order</SelectItem>
                   <SelectItem value="LISTENING_CHOICE">Listening choice</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Brand Coral Add Button */}
               <Button
                 onClick={onCreateGame}
-                className="gap-2 h-9 w-full sm:w-auto"
+                className="gap-2 rounded-xl bg-red-500 hover:bg-red-600 text-white shrink-0 h-10 px-5 font-semibold transition-all duration-200"
               >
                 <Plus className="h-4 w-4" />
                 Add Game
@@ -300,12 +316,13 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
               </div>
             </div>
           )}
-        </div>
+        </CardHeader>
 
-        <div className="overflow-x-auto relative">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto relative rounded-xl border border-gray-100 mx-6 mb-6">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
+                <TableRow className="bg-gray-50/50 border-b border-gray-100">
                   {activeTab !== "all" && (
                     <TableHead className="w-12 pl-6">
                       <Checkbox
@@ -315,15 +332,15 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
                       />
                     </TableHead>
                   )}
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="py-3.5">Name</TableHead>
+                  <TableHead className="py-3.5">Description</TableHead>
+                  <TableHead className="py-3.5">Type</TableHead>
+                  <TableHead className="text-right pr-6 py-3.5">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {games.map((game) => (
-                  <TableRow key={game._id} className="hover:bg-muted/30">
+                  <TableRow key={game._id} className="hover:bg-gray-50/50 transition-colors">
                     {activeTab !== "all" && (
                       <TableCell className="pl-6 py-4">
                         <Checkbox
@@ -333,25 +350,26 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
                         />
                       </TableCell>
                     )}
-                    <TableCell className="font-medium">{game.name}</TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="font-medium py-4">{game.name}</TableCell>
+                    <TableCell className="max-w-xs truncate py-4 text-gray-500">
                       {game.description}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <Badge
                         variant="outline"
-                        className={getTypeColor(String(game.type))}
+                        className={`rounded-md font-semibold ${getTypeColor(String(game.type))}`}
                       >
                         {renderTypeLabel(String(game.type))}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6 py-4">
                       <div className="flex gap-2 justify-end">
                         <Button
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
                           onClick={() => onViewGame(game)}
+                          title="View"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -360,6 +378,7 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
                           variant="ghost"
                           className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
                           onClick={() => onEditGame(game)}
+                          title="Edit"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -392,8 +411,8 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
                 {!loading && games.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={4}
-                      className="text-center text-muted-foreground py-6"
+                      colSpan={activeTab !== "all" ? 5 : 4}
+                      className="text-center text-muted-foreground py-8"
                     >
                       No games found
                     </TableCell>
@@ -403,59 +422,53 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
             </Table>
           </div>
 
-          {/* Pagination controls */}
-          {totalItems > 0 && (
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 mt-4 px-1 pb-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>
-                  Showing {startItem}-{endItem} of {totalItems}
-                </span>
-                <span className="hidden md:inline-block">•</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs">Rows per page</span>
-                  <Select
-                    value={String(pageSize)}
-                    onValueChange={(value) =>
-                      changePageSize(Number(value) || 10)
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-[90px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* SLEEK PAGINATION CONTROLS */}
+          {games.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+              <div className="text-xs text-gray-500">
+                Showing <span className="font-semibold text-gray-700">{games.length}</span> of{" "}
+                <span className="font-semibold text-gray-700">{totalItems}</span> games
               </div>
-
               <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
+                <button
                   onClick={() => changePage(page - 1)}
-                  disabled={page <= 1 || loading}
+                  disabled={page === 1 || loading}
+                  className="h-9 w-9 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {page} / {totalPages || 1}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(page - p) <= 1)
+                  .map((p, i, arr) => (
+                    <React.Fragment key={p}>
+                      {i > 0 && p - arr[i - 1] > 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                      <button
+                        onClick={() => changePage(p)}
+                        disabled={loading}
+                        className={`h-9 w-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-all ${
+                          page === p
+                            ? "bg-[#ff6b6b] text-white shadow-md transform scale-105"
+                            : "bg-white border border-gray-200 text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  ))}
+
+                <button
                   onClick={() => changePage(page + 1)}
                   disabled={page >= totalPages || loading}
+                  className="h-9 w-9 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  Next
-                </Button>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
       {/* Confirm actions */}
       <AlertDialog open={!!actionTarget} onOpenChange={() => setActionTarget(null)}>
@@ -463,7 +476,7 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
               {actionTarget?.action.includes("delete") ? (
-                <Trash2 className="h-5 w-5 text-red-500" />
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
               ) : (
                 <RotateCcw className="h-5 w-5 text-emerald-500" />
               )}
@@ -476,10 +489,10 @@ const GamesManagement = ({ onCreateGame, onEditGame, onViewGame }: GamesManageme
           <AlertDialogFooter className="mt-6 gap-2">
             <AlertDialogCancel className="rounded-xl border-gray-200">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className={`rounded-xl ${
+              className={`rounded-xl text-white ${
                 actionTarget?.action.includes("delete")
-                  ? "bg-red-600 hover:bg-red-700 text-white"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-emerald-600 hover:bg-emerald-700"
               }`}
               onClick={handleConfirmAction}
             >

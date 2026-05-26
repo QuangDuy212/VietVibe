@@ -3,6 +3,7 @@ import {
   callCreateGame,
   callUpdateGame,
   callGetGameDetail,
+  callUploadFile,
 } from "@/config/api";
 import { IBackendRes, IGame, IQuestion, IAnswer } from "@/types/common.type";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ChevronLeft, Plus, Save, Trash2, X } from "lucide-react";
+import { ChevronLeft, Plus, Save, Trash2, X, Upload, Music, Image as ImageIcon, Loader2, ChevronDown, ChevronRight, GripVertical, Check } from "lucide-react";
 
 interface UpdateGameProps {
   mode: "create" | "edit" | "view";
@@ -36,6 +37,76 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
     type: "MULTIPLE_CHOICE",
     questions: [],
   });
+
+  const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
+  const [collapsedQuestions, setCollapsedQuestions] = useState<Record<number, boolean>>({});
+
+  const toggleQuestionCollapse = (qIndex: number) => {
+    setCollapsedQuestions((prev) => ({
+      ...prev,
+      [qIndex]: !prev[qIndex],
+    }));
+  };
+
+  const getCorrectAnswerLabel = (q: IQuestion) => {
+    if (currentGame.type === "SENTENCE_ORDER") {
+      return "Order";
+    }
+    const correctIdx = q.answers?.findIndex((a) => a.isCorrect);
+    if (correctIdx !== undefined && correctIdx !== -1) {
+      const char = String.fromCharCode(65 + correctIdx);
+      return `${char}`;
+    }
+    return "";
+  };
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragEnabled, setDragEnabled] = useState<boolean>(false);
+
+  const reorderQuestions = (fromIndex: number, toIndex: number) => {
+    setCurrentGame((prev) => {
+      const questions = [...(prev.questions ?? [])];
+      const [draggedItem] = questions.splice(fromIndex, 1);
+      questions.splice(toIndex, 0, draggedItem);
+
+      // Adjust collapse state map correspondingly
+      setCollapsedQuestions((prevCollapsed) => {
+        const nextCollapsed = { ...prevCollapsed };
+        const temp = nextCollapsed[fromIndex];
+        nextCollapsed[fromIndex] = nextCollapsed[toIndex];
+        nextCollapsed[toIndex] = temp;
+        return nextCollapsed;
+      });
+
+      return { ...prev, questions };
+    });
+  };
+
+  const handleUploadFile = async (
+    qIndex: number,
+    field: "imageUrl" | "audioUrl",
+    file: File
+  ) => {
+    const key = `${qIndex}-${field}`;
+    setUploadingState((prev) => ({ ...prev, [key]: true }));
+    try {
+      const folderType = field === "imageUrl" ? "image" : "audio";
+      const res = await callUploadFile(file, folderType);
+      if (res?.data?.fileName) {
+        updateQuestionField(qIndex, field, res.data.fileName);
+        toast.success(`Uploaded ${field === "imageUrl" ? "image" : "audio"} successfully`);
+      } else {
+        toast.error(`Failed to upload ${field === "imageUrl" ? "image" : "audio"}`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(`An error occurred while uploading ${field === "imageUrl" ? "image" : "audio"}`);
+    } finally {
+      setUploadingState((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const isAnyFileUploading = Object.values(uploadingState).some(Boolean);
 
   useEffect(() => {
     if (isCreate) {
@@ -314,9 +385,23 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
           </div>
         </div>
         {canEdit && (
-          <Button onClick={handleSaveGame} disabled={saving} className="gap-2">
-            <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save Changes"}
+          <Button onClick={handleSaveGame} disabled={saving || isAnyFileUploading} className="gap-2">
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : isAnyFileUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Changes
+              </>
+            )}
           </Button>
         )}
       </div>
@@ -405,136 +490,375 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {currentGame.questions?.map((q, qIndex) => (
-                    <Card key={qIndex} className="bg-gray-50/50 border-gray-200 shadow-none">
-                      <CardHeader className="py-4 px-5 border-b border-gray-100 flex flex-row items-center justify-between">
-                        <CardTitle className="text-base font-semibold">
-                          Question {qIndex + 1}
-                        </CardTitle>
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8"
-                            onClick={() => removeQuestion(qIndex)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </CardHeader>
-                      <CardContent className="p-5 space-y-4">
-                        {/* Question Content */}
-                        <div className="space-y-2">
-                          <Label>Question Text</Label>
-                          <Textarea
-                            value={q.content}
-                            disabled={!canEdit}
-                            onChange={(e) => updateQuestionField(qIndex, "content", e.target.value)}
-                            placeholder="Enter the question text"
-                            rows={2}
-                          />
-                        </div>
-
-                        {(currentGame.type === "LISTENING_CHOICE") && (
-                          <div className="space-y-2">
-                            <Label>Audio URL</Label>
-                            <Input
-                              value={q.audioUrl || ""}
-                              disabled={!canEdit}
-                              onChange={(e) => updateQuestionField(qIndex, "audioUrl", e.target.value)}
-                              placeholder="https://example.com/audio.mp3"
+                  {currentGame.questions?.map((q, qIndex) => {
+                    const isCollapsed = collapsedQuestions[qIndex];
+                    
+                    if (isCollapsed) {
+                      const correctLabel = getCorrectAnswerLabel(q);
+                      return (
+                        <div
+                          key={qIndex}
+                          draggable={dragEnabled}
+                          onDragStart={(e) => {
+                            setDraggedIndex(qIndex);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                          }}
+                          onDragEnter={() => {
+                            if (draggedIndex !== null && draggedIndex !== qIndex) {
+                              reorderQuestions(draggedIndex, qIndex);
+                            }
+                          }}
+                          onDragEnd={() => {
+                            setDraggedIndex(null);
+                            setDragEnabled(false);
+                          }}
+                          onClick={() => toggleQuestionCollapse(qIndex)}
+                          className={`bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-150 rounded-2xl py-3.5 px-5 flex flex-row items-center justify-between cursor-pointer select-none gap-4 ${
+                            draggedIndex === qIndex ? "opacity-40" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                            {/* Grip Handle */}
+                            <GripVertical
+                              onMouseEnter={() => setDragEnabled(true)}
+                              onMouseLeave={() => setDragEnabled(false)}
+                              className="h-4 w-4 text-gray-300 shrink-0 cursor-grab active:cursor-grabbing"
                             />
+                            
+                            {/* Q1, Q2 Pill */}
+                            <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full shrink-0">
+                              Q{qIndex + 1}
+                            </span>
+                            
+                            {/* Question text */}
+                            <span className={`text-sm truncate flex-1 ${q.content ? "text-gray-700 font-medium" : "text-gray-400 italic"}`}>
+                              {q.content || "Enter the question text..."}
+                            </span>
                           </div>
-                        )}
 
-                        <div className="space-y-2">
-                          <Label>Image URL (Optional)</Label>
-                          <Input
-                            value={q.imageUrl || ""}
-                            disabled={!canEdit}
-                            onChange={(e) => updateQuestionField(qIndex, "imageUrl", e.target.value)}
-                            placeholder="https://example.com/image.jpg"
-                          />
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* Correct Answer badge */}
+                            {correctLabel && (
+                              <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold px-3 py-1 rounded-full shrink-0">
+                                <Check className="h-3 w-3" />
+                                <span>{correctLabel}</span>
+                              </div>
+                            )}
+                            
+                            {/* Chevron expand */}
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                          </div>
                         </div>
+                      );
+                    }
 
-                        {/* Answers */}
-                        <div className="pt-4 border-t border-gray-100">
-                          <div className="flex items-center justify-between mb-4">
-                            <Label>Answers</Label>
+                    // If expanded
+                    return (
+                      <Card
+                        key={qIndex}
+                        draggable={dragEnabled}
+                        onDragStart={(e) => {
+                          setDraggedIndex(qIndex);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                        }}
+                        onDragEnter={() => {
+                          if (draggedIndex !== null && draggedIndex !== qIndex) {
+                            reorderQuestions(draggedIndex, qIndex);
+                          }
+                        }}
+                        onDragEnd={() => {
+                          setDraggedIndex(null);
+                          setDragEnabled(false);
+                        }}
+                        className={`bg-white border border-gray-200 shadow-sm hover:border-gray-300 transition-all duration-150 rounded-2xl overflow-hidden ${
+                          draggedIndex === qIndex ? "opacity-40" : ""
+                        }`}
+                      >
+                        <CardHeader
+                          onClick={() => toggleQuestionCollapse(qIndex)}
+                          className="py-4 px-5 border-b border-gray-100 flex flex-row items-center justify-between cursor-pointer hover:bg-gray-50/50 transition-colors select-none gap-4"
+                        >
+                          <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                            {/* Grip Handle */}
+                            <GripVertical
+                              onMouseEnter={() => setDragEnabled(true)}
+                              onMouseLeave={() => setDragEnabled(false)}
+                              className="h-4 w-4 text-gray-300 shrink-0 cursor-grab active:cursor-grabbing"
+                            />
+                            
+                            {/* Q1, Q2 Pill */}
+                            <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full shrink-0">
+                              Q{qIndex + 1}
+                            </span>
+                            
+                            {/* Title */}
+                            <span className="text-sm font-semibold text-gray-900 flex-1 truncate">
+                              Question {qIndex + 1}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* Delete Button */}
                             {canEdit && (
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => addAnswer(qIndex)}
-                                className="h-7 text-xs"
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeQuestion(qIndex);
+                                }}
                               >
-                                <Plus className="h-3 w-3 mr-1" /> Add Answer
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
+                            
+                            {/* Chevron collapse */}
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
                           </div>
-                          
-                          <div className="space-y-3">
-                            {q.answers?.map((a, aIndex) => (
-                              <div key={aIndex} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white p-3 rounded-lg border border-gray-200">
-                                <div className="flex-1 flex items-center gap-3">
-                                  <div className="shrink-0 h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500">
-                                    {aIndex + 1}
+                        </CardHeader>
+                        <CardContent className="p-5 space-y-4">
+                          {/* Question Content */}
+                          <div className="space-y-2">
+                            <Label>Question Text</Label>
+                            <Textarea
+                              value={q.content}
+                              disabled={!canEdit}
+                              onChange={(e) => updateQuestionField(qIndex, "content", e.target.value)}
+                              placeholder="Enter the question text"
+                              rows={2}
+                            />
+                          </div>
+
+                          {(currentGame.type === "LISTENING_CHOICE") && (
+                            <div className="space-y-2">
+                              <Label>Audio File *</Label>
+                              <div className="relative border border-dashed rounded-lg p-4 border-gray-300 bg-white hover:border-primary/50 transition-all">
+                                {uploadingState[`${qIndex}-audioUrl`] ? (
+                                  <div className="flex items-center justify-center py-4 space-x-2">
+                                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                    <span className="text-sm text-gray-500">Uploading audio...</span>
                                   </div>
-                                  <Input
-                                    value={a.content}
-                                    disabled={!canEdit}
-                                    onChange={(e) => updateAnswerField(qIndex, aIndex, "content", e.target.value)}
-                                    placeholder={currentGame.type === "SENTENCE_ORDER" ? "Word/phrase part" : "Answer option"}
-                                    className="flex-1"
-                                  />
-                                </div>
-                                
-                                <div className="flex items-center gap-3 sm:w-auto w-full justify-between sm:justify-end">
-                                  {currentGame.type === "SENTENCE_ORDER" ? (
-                                    <div className="flex items-center gap-2">
-                                      <Label className="text-xs text-gray-500">Order</Label>
-                                      <Input
-                                        type="number"
-                                        disabled={!canEdit}
-                                        value={a.orderIndex ?? 0}
-                                        onChange={(e) => updateAnswerField(qIndex, aIndex, "orderIndex", Number(e.target.value))}
-                                        className="w-16 h-9 text-center"
+                                ) : q.audioUrl ? (
+                                  <div className="flex items-center justify-between gap-4 w-full">
+                                    <div className="flex-1 min-w-0">
+                                      <audio
+                                        src={
+                                          q.audioUrl.startsWith("http")
+                                            ? q.audioUrl
+                                            : `${import.meta.env.VITE_BACKEND_URL || ""}/api/v1/storage/audio/${q.audioUrl}`
+                                        }
+                                        controls
+                                        className="w-full h-11"
                                       />
                                     </div>
-                                  ) : (
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        name={`q-${qIndex}-correct`}
-                                        disabled={!canEdit}
-                                        checked={!!a.isCorrect}
-                                        onChange={() => setCorrectAnswer(qIndex, aIndex)}
-                                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                      />
-                                      <span className={`text-sm ${a.isCorrect ? "font-medium text-green-600" : "text-gray-500"}`}>
-                                        {canEdit ? "Correct" : a.isCorrect ? "Correct answer" : "Incorrect"}
-                                      </span>
+                                    {canEdit && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => updateQuestionField(qIndex, "audioUrl", undefined)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0 h-10 w-10 rounded-full"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <input
+                                      type="file"
+                                      accept="audio/*"
+                                      disabled={!canEdit}
+                                      id={`audio-upload-${qIndex}`}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUploadFile(qIndex, "audioUrl", file);
+                                      }}
+                                      className="hidden"
+                                    />
+                                    <label
+                                      htmlFor={canEdit ? `audio-upload-${qIndex}` : undefined}
+                                      className={`flex flex-col items-center justify-center py-4 ${
+                                        canEdit ? "cursor-pointer" : "opacity-50"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 mb-2">
+                                        <Upload className="w-5 h-5 text-gray-500" />
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-700">
+                                        Click to upload audio
+                                      </p>
+                                      <p className="text-xs text-gray-400 mt-0.5">
+                                        Supports MP3, WAV, M4A, OGG
+                                      </p>
                                     </label>
-                                  )}
-                                  
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            <Label>Image (Optional)</Label>
+                            <div className="relative border border-dashed rounded-lg p-4 border-gray-300 bg-white hover:border-primary/50 transition-all">
+                              {uploadingState[`${qIndex}-imageUrl`] ? (
+                                <div className="flex items-center justify-center py-4 space-x-2">
+                                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                  <span className="text-sm text-gray-500">Uploading image...</span>
+                                </div>
+                              ) : q.imageUrl ? (
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="relative w-16 h-16 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                                      <img
+                                        src={
+                                          q.imageUrl.startsWith("http")
+                                            ? q.imageUrl
+                                            : `${import.meta.env.VITE_BACKEND_URL || ""}/api/v1/storage/image/${q.imageUrl}`
+                                        }
+                                        alt="Preview"
+                                        className="w-full h-full object-contain"
+                                      />
+                                    </div>
+                                    <div className="min-w-0 py-1">
+                                      <p className="font-medium text-sm truncate text-gray-800">
+                                        {q.imageUrl}
+                                      </p>
+                                      <p className="text-xs text-gray-400 mt-0.5">Uploaded image</p>
+                                    </div>
+                                  </div>
                                   {canEdit && (
                                     <Button
+                                      type="button"
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => removeAnswer(qIndex, aIndex)}
-                                      className="h-8 w-8 text-gray-400 hover:text-red-500"
+                                      onClick={() => updateQuestionField(qIndex, "imageUrl", undefined)}
+                                      className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
                                     >
-                                      <X className="h-4 w-4" />
+                                      <X className="w-4 h-4" />
                                     </Button>
                                   )}
                                 </div>
-                              </div>
-                            ))}
+                              ) : (
+                                <div>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    disabled={!canEdit}
+                                    id={`image-upload-${qIndex}`}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleUploadFile(qIndex, "imageUrl", file);
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={canEdit ? `image-upload-${qIndex}` : undefined}
+                                    className={`flex flex-col items-center justify-center py-4 ${
+                                      canEdit ? "cursor-pointer" : "opacity-50"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 mb-2">
+                                      <ImageIcon className="w-5 h-5 text-gray-500" />
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-700">
+                                      Click to upload image
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      Supports PNG, JPG, JPEG, GIF, WEBP
+                                    </p>
+                                  </label>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          {/* Answers */}
+                          <div className="pt-4 border-t border-gray-100">
+                            <div className="flex items-center justify-between mb-4">
+                              <Label>Answers</Label>
+                              {canEdit && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => addAnswer(qIndex)}
+                                  className="h-7 text-xs"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" /> Add Answer
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-3">
+                              {q.answers?.map((a, aIndex) => (
+                                <div key={aIndex} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                                  <div className="flex-1 flex items-center gap-3">
+                                    <div className="shrink-0 h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500">
+                                      {aIndex + 1}
+                                    </div>
+                                    <Input
+                                      value={a.content}
+                                      disabled={!canEdit}
+                                      onChange={(e) => updateAnswerField(qIndex, aIndex, "content", e.target.value)}
+                                      placeholder={currentGame.type === "SENTENCE_ORDER" ? "Word/phrase part" : "Answer option"}
+                                      className="flex-1"
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-3 sm:w-auto w-full justify-between sm:justify-end">
+                                    {currentGame.type === "SENTENCE_ORDER" ? (
+                                      <div className="flex items-center gap-2">
+                                        <Label className="text-xs text-gray-500">Order</Label>
+                                        <Input
+                                          type="number"
+                                          disabled={!canEdit}
+                                          value={a.orderIndex ?? 0}
+                                          onChange={(e) => updateAnswerField(qIndex, aIndex, "orderIndex", Number(e.target.value))}
+                                          className="w-16 h-9 text-center"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="radio"
+                                          name={`q-${qIndex}-correct`}
+                                          disabled={!canEdit}
+                                          checked={!!a.isCorrect}
+                                          onChange={() => setCorrectAnswer(qIndex, aIndex)}
+                                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                        />
+                                        <span className={`text-sm ${a.isCorrect ? "font-medium text-green-600" : "text-gray-500"}`}>
+                                          {canEdit ? "Correct" : a.isCorrect ? "Correct answer" : "Incorrect"}
+                                        </span>
+                                      </label>
+                                    )}
+                                    
+                                    {canEdit && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeAnswer(qIndex, aIndex)}
+                                        className="h-8 w-8 text-gray-400 hover:text-red-500"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                   
                   {canEdit && (currentGame.questions?.length ?? 0) > 0 && (
                     <Button

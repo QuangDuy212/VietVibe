@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import { useAppDispatch, useAppSelector } from "./redux/hook";
 import { fetchAccount } from "./redux/slice/accountSlide";
 import { useEffect } from "react";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTopButton />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />

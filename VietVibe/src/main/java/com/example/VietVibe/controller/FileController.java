@@ -61,8 +61,16 @@ public class FileController {
         }
 
         String fileName = file.getOriginalFilename();
-        List<String> allowedExtensions = Arrays.asList("mp4", "avi", "mov", "wmv", "mkv", "flv", "webm", "3gp");
-        boolean isValid = allowedExtensions.stream().anyMatch(item -> fileName.toLowerCase().endsWith(item));
+        List<String> allowedExtensions;
+        if ("image".equalsIgnoreCase(folder)) {
+            allowedExtensions = Arrays.asList("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg");
+        } else if ("audio".equalsIgnoreCase(folder)) {
+            allowedExtensions = Arrays.asList("mp3", "wav", "m4a", "ogg", "flac", "aac");
+        } else {
+            allowedExtensions = Arrays.asList("mp4", "avi", "mov", "wmv", "mkv", "flv", "webm", "3gp");
+        }
+
+        boolean isValid = allowedExtensions.stream().anyMatch(item -> fileName != null && fileName.toLowerCase().endsWith(item));
 
         if (!isValid) {
             throw new StorageException("Invalid file extension.");
@@ -84,17 +92,19 @@ public class FileController {
         // ------------------------------------
 
         long durationInSeconds = 0;
-        try {
-            // Chỉ thực hiện nếu file thực sự tồn tại và đọc được
-            if (source.exists() && source.canRead()) {
-                MultimediaObject instance = new MultimediaObject(source);
-                MultimediaInfo info = instance.getInfo(); // Sẽ không bị treo nữa vì path đã chuẩn
-                long durationMs = info.getDuration();
-                durationInSeconds = durationMs / 1000;
+        if (!"image".equalsIgnoreCase(folder)) {
+            try {
+                // Chỉ thực hiện nếu file thực sự tồn tại và đọc được
+                if (source.exists() && source.canRead()) {
+                    MultimediaObject instance = new MultimediaObject(source);
+                    MultimediaInfo info = instance.getInfo(); // Sẽ không bị treo nữa vì path đã chuẩn
+                    long durationMs = info.getDuration();
+                    durationInSeconds = durationMs / 1000;
+                }
+            } catch (Exception e) {
+                // Log lỗi để debug nhưng không làm sập luồng upload
+                System.err.println("Lỗi lấy thời lượng: " + e.getMessage());
             }
-        } catch (Exception e) {
-            // Log lỗi để debug nhưng không làm sập luồng upload
-            System.err.println("Lỗi lấy thời lượng video: " + e.getMessage());
         }
 
         // 4. Trả về DTO

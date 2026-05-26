@@ -12,6 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { callGetGameDetail, callStartPlayGame, callCreatePoint } from "@/config/api";
 import { IBackendRes } from "@/types/common.type";
 
+const getMediaUrl = (url: string | null, type: "image" | "audio") => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  return `${import.meta.env.VITE_BACKEND_URL || ""}/api/v1/storage/${type}/${url}`;
+};
+
 const GameDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -266,7 +274,7 @@ const GameDetail = () => {
                   {currentQ.imageUrl && (
                     <div className="flex justify-center mt-2">
                       <img 
-                        src={currentQ.imageUrl} 
+                        src={getMediaUrl(currentQ.imageUrl, "image")} 
                         alt="Question visual" 
                         className="max-h-64 rounded-xl border border-gray-100 shadow-sm object-contain"
                       />
@@ -278,7 +286,7 @@ const GameDetail = () => {
                       <audio 
                         controls 
                         autoPlay
-                        src={currentQ.audioUrl} 
+                        src={getMediaUrl(currentQ.audioUrl, "audio")} 
                         className="w-full max-w-md h-12"
                       />
                     </div>

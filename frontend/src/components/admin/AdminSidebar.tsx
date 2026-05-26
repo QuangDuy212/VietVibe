@@ -24,8 +24,8 @@ export function AdminSidebar() {
   const getActiveId = () => {
     if (currentPath === "/admin") return "dashboard";
     if (currentPath.startsWith("/admin/users") || currentPath.startsWith("/admin/create-user") || currentPath.startsWith("/admin/edit-user") || currentPath.startsWith("/admin/view-user")) return "users";
-    if (currentPath.startsWith("/admin/lessons")) return "lessons";
-    if (currentPath.startsWith("/admin/games")) return "games";
+    if (currentPath.startsWith("/admin/lessons") || currentPath.startsWith("/admin/create-lesson") || currentPath.startsWith("/admin/edit-lesson") || currentPath.startsWith("/admin/view-lesson")) return "lessons";
+    if (currentPath.startsWith("/admin/games") || currentPath.startsWith("/admin/create-game") || currentPath.startsWith("/admin/edit-game") || currentPath.startsWith("/admin/view-game")) return "games";
     if (currentPath.startsWith("/admin/points")) return "points";
     return "dashboard";
   };
