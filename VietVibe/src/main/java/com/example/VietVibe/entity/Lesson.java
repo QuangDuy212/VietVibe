@@ -46,7 +46,11 @@ public class Lesson {
 
     @Builder.Default
     @Column(name = "deleted")
-    boolean deleted = false;
+    Boolean deleted = false;
+
+    public boolean isDeleted() {
+        return this.deleted != null && this.deleted;
+    }
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
     List<UserLesson> userLessons;

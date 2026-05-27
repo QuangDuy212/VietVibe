@@ -40,7 +40,11 @@ public class Game {
     @Enumerated(EnumType.STRING)
     GameType type; //
 
-    boolean deleted = false;
+    Boolean deleted = false;
+
+    public boolean isDeleted() {
+        return this.deleted != null && this.deleted;
+    }
 
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
