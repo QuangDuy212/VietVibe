@@ -40,7 +40,7 @@ export function ScrollToTopButton() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-6 right-6 z-50 h-11 w-11 rounded-full shadow-lg bg-primary hover:bg-primary/95 text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-0 cursor-pointer animate-in fade-in slide-in-from-bottom-5"
+      className="fixed bottom-24 right-[30px] z-50 h-11 w-11 rounded-full shadow-lg bg-primary hover:bg-primary/95 text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-0 cursor-pointer animate-in fade-in slide-in-from-bottom-5"
       title="Cuộn lên đầu trang"
     >
       <ArrowUp className="h-5 w-5" />

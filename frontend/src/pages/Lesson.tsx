@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Clock, Star, CheckCircle2, Lock, Play } from "lucide-react";
+import { BookOpen, Clock, Star, CheckCircle2, Lock, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import Header from "@/components/Header";
 import { useLessons } from "@/hooks/useLessons";
 import { Link } from "react-router-dom";
@@ -55,7 +55,7 @@ const Lesson = () => {
     goToPage,
     goFirst,
     goLast,
-  } = useLessons(5);
+  } = useLessons(6);
 
   if (loading) {
     return (
@@ -355,71 +355,44 @@ const Lesson = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-8">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={goFirst} 
+        {totalPages >= 1 && (
+          <div className="flex justify-center items-center gap-2.5 mt-10">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={prevPage}
               disabled={page === 1}
-              className="rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
+              className="w-10 h-10 rounded-2xl border border-border/60 hover:bg-muted transition-all duration-300"
             >
-              {"<<"}
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={prevPage} 
-              disabled={page === 1}
-              className="rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
-            >
-              {"<"}
+              <ChevronLeft className="h-5 w-5 text-muted-foreground/80" />
             </Button>
 
-            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-              let p =
-                totalPages <= 3
-                  ? i + 1
-                  : page === 1
-                    ? i + 1
-                    : page === totalPages
-                      ? totalPages - 2 + i
-                      : page - 1 + i;
-
+            {Array.from({ length: totalPages }, (_, i) => {
+              const pageNum = i + 1;
+              const isActive = pageNum === page;
               return (
                 <Button
-                  key={p}
-                  size="sm"
-                  variant={p === page ? "default" : "outline"}
-                  onClick={() => goToPage(p)}
-                  className={`rounded-lg px-3.5 transition-all duration-300 font-bold ${
-                    p === page 
-                      ? "bg-primary text-primary-foreground shadow-sm scale-105" 
-                      : "hover:bg-primary/5 hover:text-primary"
+                  key={pageNum}
+                  onClick={() => goToPage(pageNum)}
+                  className={`w-10 h-10 rounded-2xl font-bold transition-all duration-300 ${
+                    isActive
+                      ? "bg-primary text-white shadow-md hover:bg-primary/95 scale-105"
+                      : "border border-border/60 bg-transparent text-foreground hover:bg-muted"
                   }`}
                 >
-                  {p}
+                  {pageNum}
                 </Button>
               );
             })}
 
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={nextPage} 
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={nextPage}
               disabled={page >= totalPages}
-              className="rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
+              className="w-10 h-10 rounded-2xl border border-border/60 hover:bg-muted transition-all duration-300"
             >
-              {">"}
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={goLast} 
-              disabled={page >= totalPages}
-              className="rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
-            >
-              {">>"}
+              <ChevronRight className="h-5 w-5 text-muted-foreground/80" />
             </Button>
           </div>
         )}

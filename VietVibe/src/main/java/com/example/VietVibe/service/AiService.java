@@ -215,4 +215,82 @@ public class AiService {
             throw new RuntimeException("Failed to generate AI questions: " + e.getMessage(), e);
         }
     }
+
+    public String chatWithAi(List<Map<String, Object>> history) {
+        if (geminiApiKey == null || geminiApiKey.trim().isEmpty() || geminiApiKey.startsWith("AIzaSyFakeKey")) {
+            throw new RuntimeException("Google Gemini API Key is not configured on the server! Please set the GEMINI_API_KEY environment variable.");
+        }
+
+        try {
+            // Setup VibeBot System Instruction
+            Map<String, Object> systemPart = new HashMap<>();
+            systemPart.put("text", "You are 'VibeBot', the official friendly AI Vietnamese tutor for the VietVibe platform. " +
+                    "Your goal is to help users learn Vietnamese in a fun, interactive way. " +
+                    "Explain grammar, define vocabulary, or help practice simple conversational Vietnamese. " +
+                    "Keep answers encouraging, structured, and concise. " +
+                    "When explaining language concepts, respond in English. " +
+                    "When the user wants to practice conversation, speak in simple, clear Vietnamese and provide english translation hints in parentheses if needed.");
+
+            Map<String, Object> systemInstruction = new HashMap<>();
+            systemInstruction.put("parts", Collections.singletonList(systemPart));
+
+            // Build request payload matching Gemini structure
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("contents", history);
+            requestBody.put("systemInstruction", systemInstruction);
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            // Using the fallback/quota-friendly chain for robustness
+            List<String> modelsToTry = List.of("gemini-2.5-flash", "gemini-3.5-flash");
+            Exception lastException = null;
+            String text = null;
+
+            for (String modelName : modelsToTry) {
+                try {
+                    String url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + geminiApiKey;
+                    ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+                    Map<String, Object> body = response.getBody();
+                    if (body == null) {
+                        throw new RuntimeException("Empty response body returned from Gemini API");
+                    }
+
+                    List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
+                    if (candidates == null || candidates.isEmpty()) {
+                        throw new RuntimeException("No candidates returned from Gemini API");
+                    }
+
+                    Map<String, Object> firstCandidate = candidates.get(0);
+                    Map<String, Object> contentMap = (Map<String, Object>) firstCandidate.get("content");
+                    if (contentMap == null) {
+                        throw new RuntimeException("Empty content map in candidate");
+                    }
+
+                    List<Map<String, Object>> parts = (List<Map<String, Object>>) contentMap.get("parts");
+                    if (parts == null || parts.isEmpty()) {
+                        throw new RuntimeException("No parts returned in content map");
+                    }
+
+                    text = (String) parts.get(0).get("text");
+                    if (text != null) {
+                        break; // Succeeded!
+                    }
+                } catch (Exception e) {
+                    lastException = e;
+                }
+            }
+
+            if (text == null) {
+                throw new RuntimeException("All Gemini models failed. Last error: " + (lastException != null ? lastException.getMessage() : "Unknown"), lastException);
+            }
+
+            return text;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate chatbot response: " + e.getMessage(), e);
+        }
+    }
 }

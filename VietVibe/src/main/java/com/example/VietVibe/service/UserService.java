@@ -67,8 +67,17 @@ public class UserService {
         log.info("Update a user");
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
+                throw new AppException(ErrorCode.PASSWORD_INCORRECT);
+            }
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                throw new AppException(ErrorCode.PASSWORD_INCORRECT);
+            }
+        }
+
         userMapper.updateUser(user, request);
-        if (request.getPassword() != null) {
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         if (request.getRole() != null) {

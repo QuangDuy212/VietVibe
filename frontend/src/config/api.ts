@@ -366,3 +366,7 @@ export const callAiGenerateQuestions = (data: {
 }) => {
   return axios.post<IBackendRes<any>>("/api/v1/ai/generate-questions", data);
 };
+
+export const callAiChat = (history: Array<{ role: 'user' | 'model', parts: Array<{ text: string }> }>) => {
+  return axios.post<IBackendRes<{ reply: string }>>("/api/v1/ai/chat", { history });
+};

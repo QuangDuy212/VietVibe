@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle2, Clock, BookOpen, Languages, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ILesson, ICurrentLesson } from "@/types/common.type";
@@ -20,6 +20,36 @@ const levelColors = {
   BEGINNER: "bg-secondary/10 text-secondary hover:bg-secondary/20",
   INTERMEDIATE: "bg-accent/10 text-accent hover:bg-accent/20",
   ADVANCE: "bg-primary/10 text-primary hover:bg-primary/20",
+};
+
+const sectionStyles: Record<string, {
+  bg: string;
+  border: string;
+  iconBg: string;
+  iconColor: string;
+  icon: any;
+}> = {
+  Grammar: {
+    bg: "bg-indigo-50/50 dark:bg-indigo-950/15",
+    border: "border border-indigo-100/50 dark:border-indigo-950/30 border-l-4 border-l-indigo-500",
+    iconBg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    icon: BookOpen,
+  },
+  Vocabulary: {
+    bg: "bg-amber-50/50 dark:bg-amber-950/15",
+    border: "border border-amber-100/50 dark:border-amber-950/30 border-l-4 border-l-amber-500",
+    iconBg: "bg-amber-500/10 dark:bg-amber-500/20",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    icon: Languages,
+  },
+  Phonetics: {
+    bg: "bg-emerald-50/50 dark:bg-emerald-950/15",
+    border: "border border-emerald-100/50 dark:border-emerald-950/30 border-l-4 border-l-emerald-500",
+    iconBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    icon: Volume2,
+  },
 };
 const LessonDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -234,33 +264,30 @@ const LessonDetail = () => {
               </CardHeader>
             </Card>
 
-            <Card>
-              <CardContent className="p-0">
-                <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden">
-                  <video
-                    src={`${
-                      import.meta.env.VITE_BACKEND_URL
-                    }/api/v1/storage/video/${currentLesson?.videourl}`}
-                    controls
-                    className="w-full h-full object-cover"
-                    onPause={handlePause}
-                    onLoadedMetadata={handleLoadedMetadata}
-                    ref={videoRef}
-                  />
-                </div>
-                <div className="p-6">
-                  <Button
-                    variant="default"
-                    size="lg"
-                    className="w-full"
-                    onClick={handleContinueLesson}
-                  >
-                    <Play className="h-5 w-5 mr-2" />
-                    {progress === 100 ? "Review Lesson" : "Continue Learning"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Video Player & Action Button Section */}
+            <div className="space-y-4">
+              <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-md border border-black/10">
+                <video
+                  src={`${
+                    import.meta.env.VITE_BACKEND_URL
+                  }/api/v1/storage/video/${currentLesson?.videourl}`}
+                  controls
+                  className="w-full h-full object-cover rounded-2xl"
+                  onPause={handlePause}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  ref={videoRef}
+                />
+              </div>
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full py-6 text-base font-bold rounded-2xl bg-primary text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm hover:scale-100 active:scale-[0.98]"
+                onClick={handleContinueLesson}
+              >
+                <Play className="h-5 w-5 mr-2 fill-current" />
+                {progress === 100 ? "Review Lesson" : "Continue Learning"}
+              </Button>
+            </div>
 
             <Card>
               <CardHeader>
@@ -295,32 +322,58 @@ const LessonDetail = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lesson Content</CardTitle>
+            <Card className="border border-primary/10 shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold tracking-tight">Lesson Content</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {currentLesson.sections?.map((section) => (
-                  <div
-                    key={section.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                  >
-                    {section.completed ? (
-                      <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground flex-shrink-0" />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{section.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {section.duration}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {(section as any).content}
-                      </p>
+              <CardContent className="space-y-4">
+                {currentLesson.sections?.map((section) => {
+                  const style = sectionStyles[section.title] || {
+                    bg: "bg-muted/50",
+                    border: "border border-muted/50 border-l-4 border-l-primary",
+                    iconBg: "bg-primary/10",
+                    iconColor: "text-primary",
+                    icon: BookOpen
+                  };
+                  const IconComponent = style.icon;
+
+                  return (
+                    <div
+                      key={section.id}
+                      className={`group flex flex-col p-4 rounded-2xl transition-all duration-300 hover:shadow-md ${style.bg} ${style.border}`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 flex items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 shadow-sm ${style.iconBg} ${style.iconColor}`}>
+                            <IconComponent className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-foreground tracking-tight">{section.title}</p>
+                            {section.duration && (
+                              <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{section.duration}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {section.completed ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                            Done
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                            Active
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded-xl p-3">
+                        <p className="text-xs text-muted-foreground leading-relaxed break-words font-medium">
+                          {(section as any).content}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
 

@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import StatsCard from "@/components/StatsCard";
+import { toast } from "sonner";
 import {
   Trophy,
   BookOpen,
@@ -17,6 +19,7 @@ import {
   ChevronRight,
   Lock,
   User,
+  Languages,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useAppSelector, useAppDispatch } from "@/redux/hook";
@@ -63,11 +66,16 @@ const Profile = () => {
 
   // --- States cho chức năng Sửa ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editData, setEditData] = useState({
     name: "",
     address: "",
-    password: "",
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   useEffect(() => {
@@ -127,26 +135,34 @@ const Profile = () => {
             setOverallCompleted(stats.overallCompleted);
           }
         } catch (error) {
-          console.error("Lỗi khi tải thông số profile:", error);
+          console.error("Error loading profile stats:", error);
         }
       }
     };
     fetchProfileStats();
   }, [user?._id]);
 
-  // --- Logic Xử lý Sửa Profile (Giữ nguyên) ---
+  // --- Logic Xử lý Sửa Profile & Đổi mật khẩu ---
   const handleOpenEdit = () => {
     setEditData({
       name: user.name || "",
       address: user.address || "",
-      password: "",
     });
     setIsEditModalOpen(true);
   };
 
+  const handleOpenChangePassword = () => {
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setIsPasswordModalOpen(true);
+  };
+
   const handleUpdateProfile = async () => {
-    if (!editData.name) {
-      alert("Họ tên không được để trống!");
+    if (!editData.name.trim()) {
+      toast.error("Full name cannot be empty!");
       return;
     }
 
@@ -156,17 +172,54 @@ const Profile = () => {
         name: editData.name,
         address: editData.address,
       };
-      if (editData.password) payload.password = editData.password;
 
       const res = await callUpdateUser(user._id, payload);
 
       if (res.data) {
-        alert("Cập nhật thành công!");
+        toast.success("Profile updated successfully!");
         dispatch(setUserLoginInfo(res.data as any));
         setIsEditModalOpen(false);
       }
-    } catch (error) {
-      alert("Cập nhật thất bại. Vui lòng thử lại.");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Update failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordData.currentPassword.trim()) {
+      toast.error("Please enter your current password!");
+      return;
+    }
+    if (!passwordData.newPassword.trim()) {
+      toast.error("Please enter your new password!");
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters!");
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Confirm password does not match!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload: any = {
+        currentPassword: passwordData.currentPassword,
+        password: passwordData.newPassword,
+      };
+
+      const res = await callUpdateUser(user._id, payload);
+
+      if (res.data) {
+        toast.success("Password changed successfully!");
+        setIsPasswordModalOpen(false);
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Current password is incorrect!");
     } finally {
       setIsSubmitting(false);
     }
@@ -188,10 +241,14 @@ const Profile = () => {
 
       <div className="container px-4 py-8">
         {/* Profile Header */}
-        <Card className="mb-8 border-none shadow-sm bg-card/50 backdrop-blur text-black">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-              <Avatar className="h-24 w-24 border-4 border-primary/20 shadow-xl">
+        <Card className="mb-8 border border-primary/10 shadow-md bg-gradient-to-br from-card via-card to-primary/5 rounded-3xl relative overflow-hidden text-black">
+          {/* Decorative background blobs */}
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-gradient-to-br from-primary/10 to-accent/5 blur-3xl opacity-60 pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 -ml-16 -mb-16 w-48 h-48 rounded-full bg-gradient-to-br from-secondary/5 to-transparent blur-3xl opacity-50 pointer-events-none" />
+
+          <CardContent className="p-8 relative z-10">
+            <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
+              <Avatar className="h-28 w-28 border-4 border-white dark:border-background shadow-2xl rounded-full flex-shrink-0">
                 <AvatarImage
                   src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
                 />
@@ -199,33 +256,43 @@ const Profile = () => {
               </Avatar>
 
               <div className="flex-1 space-y-4">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold tracking-tight text-black">
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <h1 className="text-3xl font-black tracking-tight text-foreground">
                     {user.name}
                   </h1>
-                  <Badge className="bg-gradient-to-r from-primary to-accent text-white border-none">
+                  <Badge className="bg-gradient-to-r from-primary via-accent to-secondary text-white border-none font-bold uppercase tracking-wider text-[10px] px-2.5 py-0.5 shadow-sm">
                     Premium
                   </Badge>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <Mail className="h-4 w-4" /> {user.username}
+                <div className="flex flex-wrap justify-center md:justify-start gap-x-5 gap-y-2 text-sm font-semibold text-muted-foreground">
+                  <div className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-default">
+                    <Mail className="h-4.5 w-4.5 text-primary/70" /> {user.username}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4" /> {user.address || "N/A"}
+                  <div className="flex items-center gap-1.5 hover:text-secondary transition-colors cursor-default">
+                    <MapPin className="h-4.5 w-4.5 text-secondary/70" /> {user.address || "Not updated"}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" /> Joined Aug 2025
+                  <div className="flex items-center gap-1.5 hover:text-accent transition-colors cursor-default">
+                    <Calendar className="h-4.5 w-4.5 text-accent/70" /> Joined Aug 2025
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenEdit}
-                  className="rounded-full shadow-sm hover:bg-primary hover:text-white transition-all border-primary/40 text-primary font-medium"
-                >
-                  <Edit className="h-3.5 w-3.5 mr-2" /> Edit Profile
-                </Button>
+                <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenEdit}
+                    className="rounded-xl border border-primary/20 bg-background/50 hover:bg-primary hover:text-white transition-all text-primary font-bold shadow-sm active:scale-95 duration-200"
+                  >
+                    <Edit className="h-3.5 w-3.5 mr-2" /> Edit Information
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenChangePassword}
+                    className="rounded-xl border border-secondary/20 bg-background/50 hover:bg-secondary hover:text-white transition-all text-secondary font-bold shadow-sm active:scale-95 duration-200"
+                  >
+                    <Lock className="h-3.5 w-3.5 mr-2" /> Change Password
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -266,55 +333,75 @@ const Profile = () => {
 
         {/* Basic Info & Progress */}
         <div className="grid lg:grid-cols-2 gap-6">
-          <Card className="border-none shadow-sm text-black">
-            <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
+          <Card className="border border-primary/10 shadow-sm text-black hover:border-primary/15 transition-all">
+            <CardHeader className="border-b border-primary/5 pb-4">
+              <CardTitle className="text-xl font-bold tracking-tight">Basic Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-y-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6">
               {[
-                { label: "Full Name", value: user.name },
-                { label: "Username", value: user.username },
-                { label: "Location", value: user.address || "Chưa cập nhật" },
-                { label: "Native Language", value: "Vietnamese" },
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                    {item.label}
-                  </p>
-                  <p className="font-semibold">{item.value}</p>
-                </div>
-              ))}
+                { label: "Full Name", value: user.name, icon: User, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+                { label: "Username", value: user.username, icon: Mail, color: "text-amber-500", bg: "bg-amber-500/10" },
+                { label: "Location", value: user.address || "Not updated", icon: MapPin, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                { label: "Native Language", value: "Vietnamese", icon: Languages, color: "text-blue-500", bg: "bg-blue-500/10" },
+              ].map((item, idx) => {
+                const IconComponent = item.icon;
+                return (
+                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/20 border border-muted/30 transition-all hover:bg-muted/30">
+                    <div className={`w-11 h-11 flex items-center justify-center rounded-xl ${item.bg} ${item.color} shadow-sm flex-shrink-0`}>
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-wider mb-0.5">
+                        {item.label}
+                      </p>
+                      <p className="font-extrabold text-foreground text-sm truncate">{item.value}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm text-black">
-            <CardHeader>
-              <CardTitle className="text-lg">Learning Progress</CardTitle>
+          <Card className="border border-primary/10 shadow-sm text-black hover:border-primary/15 transition-all">
+            <CardHeader className="border-b border-primary/5 pb-4">
+              <CardTitle className="text-xl font-bold tracking-tight">Learning Progress</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                {[
-                  { id: "beginner", label: "Beginner" },
-                  { id: "intermediate", label: "Intermediate" },
-                  { id: "advanced", label: "Advanced" },
-                ].map((lv) => {
-                  // Xác định rõ key này thuộc về lessonStats
-                  const key = lv.id as keyof typeof lessonStats;
-                  const data = lessonStats[key];
+            <CardContent className="space-y-6 pt-6">
+              {[
+                { id: "beginner", label: "Beginner Lessons", icon: BookOpen, color: "text-emerald-500", bg: "bg-emerald-500/10", progressColor: "from-emerald-500 to-green-400" },
+                { id: "intermediate", label: "Intermediate Lessons", icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10", progressColor: "from-blue-500 to-indigo-400" },
+                { id: "advanced", label: "Advanced Lessons", icon: BookOpen, color: "text-primary", bg: "bg-primary/10", progressColor: "from-primary to-accent" },
+              ].map((lv) => {
+                const key = lv.id as keyof typeof lessonStats;
+                const data = lessonStats[key];
+                const total = data.total || 0;
+                const completed = data.completed || 0;
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                const IconComponent = lv.icon;
 
-                  return (
-                    <div
-                      key={lv.id}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <span className="text-sm">{lv.label} Lessons</span>
-                      <Badge variant="secondary" className="font-mono">
-                        {data.completed}/{data.total} Completed
-                      </Badge>
+                return (
+                  <div key={lv.id} className="space-y-3 p-4 rounded-2xl bg-muted/30 border border-muted/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${lv.bg} ${lv.color}`}>
+                          <IconComponent className="h-4.5 w-4.5" />
+                        </div>
+                        <span className="text-sm font-bold text-foreground">{lv.label}</span>
+                      </div>
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {completed}/{total} Completed ({percent}%)
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="relative">
+                      <Progress 
+                        value={percent} 
+                        className="h-2.5 bg-red-100 dark:bg-red-950/40 border border-red-200/20 dark:border-red-900/10 overflow-hidden" 
+                        indicatorClassName={`bg-gradient-to-r ${lv.progressColor} rounded-full transition-all duration-500 ease-out`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         </div>
@@ -324,8 +411,8 @@ const Profile = () => {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[450px] rounded-2xl p-6 text-black">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center text-primary">
-              Edit Personal Info
+            <DialogTitle className="text-2xl font-bold text-center text-primary flex items-center justify-center gap-2">
+              <User className="h-6 w-6 text-primary" /> Edit Information
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
@@ -340,7 +427,7 @@ const Profile = () => {
                 readOnly
               />
               <p className="text-xs text-muted-foreground italic">
-                Username không thể thay đổi
+                Username cannot be changed
               </p>
             </div>
             <div className="space-y-1.5">
@@ -367,17 +454,74 @@ const Profile = () => {
                 }
               />
             </div>
+          </div>
+          <div className="flex gap-3 mt-6">
+            <Button
+              variant="ghost"
+              className="flex-1 rounded-xl"
+              onClick={() => setIsEditModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 rounded-xl bg-primary text-white font-bold"
+              onClick={handleUpdateProfile}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL ĐỔI MẬT KHẨU --- */}
+      <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+        <DialogContent className="sm:max-w-[450px] rounded-2xl p-6 text-black">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center text-primary flex items-center justify-center gap-2">
+              <Lock className="h-6 w-6 text-primary" /> Change Password
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold flex items-center gap-2 text-black">
-                <Lock className="h-4 w-4" /> New Password
+                <Lock className="h-4 w-4" /> Current Password
               </label>
               <input
                 type="password"
-                placeholder="Để trống nếu không đổi"
+                placeholder="Enter current password"
                 className="w-full px-3 py-2 border rounded-xl focus:ring-2 ring-primary/20 outline-none"
-                value={editData.password}
+                value={passwordData.currentPassword}
                 onChange={(e) =>
-                  setEditData({ ...editData, password: e.target.value })
+                  setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold flex items-center gap-2 text-black">
+                <Lock className="h-4 w-4 text-emerald-500" /> New Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter new password (min 6 characters)"
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 ring-emerald-500/20 outline-none"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold flex items-center gap-2 text-black">
+                <Lock className="h-4 w-4 text-emerald-500" /> Confirm New Password
+              </label>
+              <input
+                type="password"
+                placeholder="Re-enter new password"
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 ring-emerald-500/20 outline-none"
+                value={passwordData.confirmPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, confirmPassword: e.target.value })
                 }
               />
             </div>
@@ -386,16 +530,16 @@ const Profile = () => {
             <Button
               variant="ghost"
               className="flex-1 rounded-xl"
-              onClick={() => setIsEditModalOpen(false)}
+              onClick={() => setIsPasswordModalOpen(false)}
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               className="flex-1 rounded-xl bg-primary text-white font-bold"
-              onClick={handleUpdateProfile}
+              onClick={handleChangePassword}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {isSubmitting ? "Processing..." : "Change Password"}
             </Button>
           </div>
         </DialogContent>
@@ -408,17 +552,17 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">
                 <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
-                  <Gamepad2 className="h-6 w-6" /> Lịch sử chơi game
+                  <Gamepad2 className="h-6 w-6" /> Game History
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground">
-                  Theo dõi hành trình cải thiện điểm số của bạn
+                  Track your score improvement history
                 </p>
               </div>
               <div className="relative group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
                   type="text"
-                  placeholder="Tìm tên game..."
+                  placeholder="Search game name..."
                   className="pl-10 pr-4 py-2 bg-muted/50 border-none rounded-full text-sm w-full md:w-64 focus:ring-2 ring-primary/20 outline-none transition-all"
                   value={searchTerm}
                   onChange={(e) => {
@@ -437,10 +581,10 @@ const Profile = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/30 text-muted-foreground text-[11px] font-bold uppercase tracking-widest">
-                        <th className="p-4 text-left">Tên Game</th>
-                        <th className="p-4 text-center">Tổng Điểm</th>
-                        <th className="p-4 text-center">Thời Gian</th>
-                        <th className="p-4 text-right">Hành Động</th>
+                        <th className="p-4 text-left">Game Name</th>
+                        <th className="p-4 text-center">Total Score</th>
+                        <th className="p-4 text-center">Time</th>
+                        <th className="p-4 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
@@ -464,7 +608,7 @@ const Profile = () => {
                                   )}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground italic">
-                                  Đúng {item.correctAnswers}/
+                                  Correct {item.correctAnswers}/
                                   {item.totalQuestions}
                                 </p>
                               </div>
@@ -497,7 +641,7 @@ const Profile = () => {
                               onClick={() => navigate(`/game/${item.gameId}`)}
                               className="rounded-full text-xs font-bold hover:bg-primary hover:text-white"
                             >
-                              Chơi lại
+                              Play Again
                             </Button>
                           </td>
                         </tr>
@@ -509,7 +653,7 @@ const Profile = () => {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
                     <p className="text-[11px] text-muted-foreground font-medium italic">
-                      Hiển thị trang {currentPage} / {totalPages}
+                      Showing page {currentPage} / {totalPages}
                     </p>
                     <div className="flex items-center gap-1">
                       <Button
@@ -537,7 +681,7 @@ const Profile = () => {
             ) : (
               <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
                 <Gamepad2 className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="font-bold text-lg">Không tìm thấy kết quả</h3>
+                <h3 className="font-bold text-lg">No results found</h3>
               </div>
             )}
           </div>

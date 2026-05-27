@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Play } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   return (
@@ -26,11 +27,17 @@ const Hero = () => {
             </p>
             
             <div className="flex flex-wrap gap-4">
-              <Button variant="gradient" size="lg" className="gap-2">
-                <Play className="h-5 w-5" />
-                Start Learning Free
-              </Button>
-              <Button variant="outline" size="lg">
+              <Link to="/lesson">
+                <Button variant="gradient" size="lg" className="gap-2">
+                  <Play className="h-5 w-5" />
+                  Start Learning Free
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => document.getElementById("lessons")?.scrollIntoView({ behavior: "smooth" })}
+              >
                 View Lessons
               </Button>
             </div>

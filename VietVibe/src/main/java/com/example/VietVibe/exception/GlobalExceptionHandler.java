@@ -30,6 +30,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)
     ResponseEntity<ApiResponse<?>> handlingRuntimeException(Exception exception) {
+        // Handle client abort exception cleanly (user closed tab, refreshed, or sought video)
+        if (exception.getClass().getName().equals("org.apache.catalina.connector.ClientAbortException") || 
+            (exception.getCause() != null && exception.getCause().getClass().getName().equals("org.apache.catalina.connector.ClientAbortException"))) {
+            log.warn("Client aborted connection (user closed tab, refreshed page, or cancelled media stream)");
+            return null; // Connection is already closed by client, no need to write a response
+        }
+
         log.error("Uncaught exception occurred: ", exception);
         ApiResponse<?> apiResponse = new ApiResponse();
 
