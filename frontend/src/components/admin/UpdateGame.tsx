@@ -1248,7 +1248,6 @@ const UpdateGame = ({ mode, game, onBack }: UpdateGameProps) => {
                     <SelectContent className="rounded-xl">
                       <SelectItem value="MULTIPLE_CHOICE">Multiple choice</SelectItem>
                       <SelectItem value="SENTENCE_ORDER">Sentence order</SelectItem>
-                      <SelectItem value="LISTENING_CHOICE">Listening choice</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
