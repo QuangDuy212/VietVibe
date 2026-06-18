@@ -51,7 +51,11 @@ export const useLessons = (pageSize: number = 5, initialLevel: string = "ALL") =
         throw new Error("Non-200 response");
       }
 
-      setLessons(response.data.result as LessonWithProgress[]);
+      // Lọc bỏ các lesson đã bị soft delete trước khi set state
+      const activeResult = (response.data.result as LessonWithProgress[]).filter(
+        (l: any) => l.deleted !== true
+      );
+      setLessons(activeResult);
       setTotalPages(response.data.meta.pages);
       setTotalElements(response.data.meta.total);
       
@@ -63,7 +67,9 @@ export const useLessons = (pageSize: number = 5, initialLevel: string = "ALL") =
       // 2. Fetch dữ liệu tổng quát của level đó để đếm số bài hoàn thành thực tế
       const resFull = await callFetchLessonsPaginated(1, 100, filterQuery);
       if (resFull?.data?.result) {
-        const allLessons = resFull.data.result as any[];
+        const allLessons = (resFull.data.result as any[]).filter(
+          (l) => l.deleted !== true
+        );
         const count = allLessons.filter(
           (l) => l.progress === 100 || l.completed === true
         ).length;

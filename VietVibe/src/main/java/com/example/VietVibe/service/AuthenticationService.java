@@ -206,6 +206,11 @@ public class AuthenticationService {
             throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
+        // Block soft-deleted users from refreshing token
+        if (Boolean.TRUE.equals(currentUser.getDeleted())) {
+            throw new AppException(ErrorCode.ACCOUNT_DELETED);
+        }
+
         // issue new token/set refresh token as cookies
         AuthenticationResponse res = new AuthenticationResponse();
         User currentUserDB = this.userService.handleGetUserByUsername(username);

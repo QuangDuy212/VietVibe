@@ -27,6 +27,9 @@ public class UserDetailsCustom implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("Username/password không hợp lệ");
         }
+        if (Boolean.TRUE.equals(user.getDeleted())) {
+            throw new UsernameNotFoundException("Tài khoản đã bị vô hiệu hóa");
+        }
         return new User(
                 user.getUsername(), user.getPassword(),
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));

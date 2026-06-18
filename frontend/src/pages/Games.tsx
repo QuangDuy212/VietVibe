@@ -24,7 +24,8 @@ const Games = () => {
         setLoading(true);
         const res = (await callGetGames(page, pageSize)) as unknown as IBackendRes<IPaginationRes<any>>;
         const result = res?.data?.result ?? [];
-        setGames(result);
+        // Lọc bỏ các game đã bị soft delete
+        setGames(result.filter((g: any) => g.deleted !== true));
         if (res?.data?.meta) {
           setTotalPages(res.data.meta.pages);
         }

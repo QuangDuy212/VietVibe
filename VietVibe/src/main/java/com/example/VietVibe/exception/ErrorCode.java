@@ -10,6 +10,7 @@ public enum ErrorCode {
     // AUTHENTICATION:
     UNAUTHORIZED(403, "You do not have permission", HttpStatus.FORBIDDEN),
     UNAUTHENTICATED(401, "Unauthenticated", HttpStatus.UNAUTHORIZED),
+    ACCOUNT_DELETED(401, "Tài khoản đã bị vô hiệu hóa", HttpStatus.UNAUTHORIZED),
     PASSWORD_INCORRECT(400, "Current password is incorrect", HttpStatus.BAD_REQUEST),
     INVALID_DOB(400, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(500, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),

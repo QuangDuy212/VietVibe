@@ -14,6 +14,8 @@ import com.example.VietVibe.entity.User;
 @Repository
 public interface LessonRepository extends JpaRepository<Lesson, String>, JpaSpecificationExecutor<Lesson> {
     boolean existsByLessontitle(String lessontitle);
+
     long countByDeleted(boolean deleted);
-    // Page<Lesson> findByUsersContainingOrderByCreatedAtDesc(User user, Pageable pageable);
+    // Page<Lesson> findByUsersContainingOrderByCreatedAtDesc(User user, Pageable
+    // pageable);
 }

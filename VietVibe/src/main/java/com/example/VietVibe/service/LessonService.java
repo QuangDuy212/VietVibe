@@ -163,6 +163,7 @@ public class LessonService {
         }
         return 0;
     }
+
     public CountElementResponse countLessons() {
         long count = this.lessonRepository.count();
         return CountElementResponse.builder()
