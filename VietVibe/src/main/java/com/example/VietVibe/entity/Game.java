@@ -35,21 +35,25 @@ public class Game {
     int totalQuestion;
     int timesPlayed;
 
+    @Builder.Default
     int bestScore = 0;
 
     @Enumerated(EnumType.STRING)
     GameType type; //
 
+    @Builder.Default
     Boolean deleted = false;
 
     public boolean isDeleted() {
         return this.deleted != null && this.deleted;
     }
 
+    @Builder.Default
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     List<Question> questions = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
     List<Point> points = new ArrayList<>();
